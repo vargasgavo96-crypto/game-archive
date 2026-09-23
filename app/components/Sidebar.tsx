@@ -44,7 +44,8 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-    setMenuAbierto(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  setMenuAbierto(false);
   }, [pathname]);
 
   return (

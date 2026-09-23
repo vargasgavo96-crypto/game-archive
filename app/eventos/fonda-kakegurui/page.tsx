@@ -55,7 +55,7 @@ export default async function FondaKakeguruiPage() {
 
   const { data: ediciones, error: edicionesError } = await supabase
     .from("ediciones")
-    .select("id, evento_id, año, fecha")
+    .select("*")
     .eq("evento_id", evento.id)
     .order("fecha", { ascending: false });
 

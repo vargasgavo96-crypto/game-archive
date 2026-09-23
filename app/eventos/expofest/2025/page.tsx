@@ -70,11 +70,9 @@ const presentaciones = [
 
 function nombreCorto(nombre: string) {
   const partes = nombre.trim().split(/\s+/);
-
   if (partes.length === 1) {
     return partes[0];
   }
-
   return `${partes[0]} ${partes[partes.length - 2]}`;
 }
 
@@ -87,14 +85,12 @@ export default async function Expofest2025Page() {
 
   if (eventoError || !evento) {
     console.error("Error cargando Expofest:", eventoError);
-
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-400">
             No se pudo cargar Expofest
           </h1>
-
           <p className="mt-3 text-zinc-400">
             El evento no pudo ser encontrado en Supabase.
           </p>
@@ -105,21 +101,19 @@ export default async function Expofest2025Page() {
 
   const { data: edicion, error: edicionError } = await supabase
     .from("ediciones")
-    .select("id, evento_id, año, fecha")
+    .select("*")
     .eq("evento_id", evento.id)
     .eq("año", "2025")
     .single();
 
   if (edicionError || !edicion) {
     console.error("Error cargando edición:", edicionError);
-
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-400">
             No se encontró Expofest 2025
           </h1>
-
           <p className="mt-3 text-zinc-400">
             Revisa que la edición 2025 exista en Supabase.
           </p>
@@ -140,15 +134,17 @@ export default async function Expofest2025Page() {
     console.error("Error cargando premio:", premioError);
   }
 
-  const { data: participacionGanadora, error: participacionError } =
-    await supabase
-      .from("participaciones")
-      .select(
-        "id, persona_id, edicion_id, posicion, puntos_finales"
-      )
-      .eq("edicion_id", edicion.id)
-      .eq("posicion", 1)
-      .maybeSingle();
+  const {
+    data: participacionGanadora,
+    error: participacionError,
+  } = await supabase
+    .from("participaciones")
+    .select(
+      "id, persona_id, edicion_id, posicion, puntos_finales"
+    )
+    .eq("edicion_id", edicion.id)
+    .eq("posicion", 1)
+    .maybeSingle();
 
   if (participacionError) {
     console.error(
@@ -533,10 +529,7 @@ export default async function Expofest2025Page() {
         <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
           <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
             <p>THE GAME ARCHIVE</p>
-
-            <p>
-              Expofest · Primera edición · 2025
-            </p>
+            <p>Expofest · Primera edición · 2025</p>
           </div>
         </footer>
       </div>

@@ -89,7 +89,7 @@ export default async function HallOfFamePage() {
     eventoIds.length
       ? await supabase
           .from("ediciones")
-          .select("id, evento_id, año, fecha")
+          .select("*")
           .in("evento_id", eventoIds)
           .order("fecha", {
             ascending: false,

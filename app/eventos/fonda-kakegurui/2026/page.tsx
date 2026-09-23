@@ -150,7 +150,7 @@ export default async function FondaKakegurui2026Page() {
 
   const { data: edicion, error: edicionError } = await supabase
     .from("ediciones")
-    .select("id, evento_id, año, fecha")
+    .select("*")
     .eq("evento_id", evento.id)
     .eq("año", "2026")
     .single();

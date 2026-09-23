@@ -14,9 +14,7 @@ type Persona = {
 export default async function AmigxsPage() {
   const { data: personas, error } = await supabase
     .from("personas")
-    .select(
-      "id, nombre, apodo, cumpleaños, signo, biografia, etiquetas, imagen"
-    );
+    .select("*");
 
   if (error) {
     console.error("Error cargando personas:", error);
@@ -132,7 +130,7 @@ export default async function AmigxsPage() {
 
                       {amigx.apodo && (
                         <p className="mt-1 text-sm font-semibold text-violet-400">
-                          "{amigx.apodo}"
+                          &quot;{amigx.apodo}&quot;
                         </p>
                       )}
 
@@ -162,16 +160,14 @@ export default async function AmigxsPage() {
                       {amigx.etiquetas &&
                         amigx.etiquetas.length > 0 && (
                           <div className="mt-5 flex flex-wrap gap-2">
-                            {amigx.etiquetas.map(
-                              (etiqueta) => (
-                                <span
-                                  key={etiqueta}
-                                  className="rounded-full border border-violet-500/30 bg-violet-950/40 px-3 py-1.5 text-xs font-bold tracking-wide text-violet-300"
-                                >
-                                  {etiqueta}
-                                </span>
-                              )
-                            )}
+                            {amigx.etiquetas.map((etiqueta) => (
+                              <span
+                                key={etiqueta}
+                                className="rounded-full border border-violet-500/30 bg-violet-950/40 px-3 py-1.5 text-xs font-bold tracking-wide text-violet-300"
+                              >
+                                {etiqueta}
+                              </span>
+                            ))}
                           </div>
                         )}
                     </div>

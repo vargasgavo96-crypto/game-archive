@@ -60,7 +60,7 @@ export default async function Home() {
 
     supabase
       .from("ediciones")
-      .select("id, evento_id, año, fecha")
+      .select("*")
       .order("fecha", { ascending: false }),
 
     supabase

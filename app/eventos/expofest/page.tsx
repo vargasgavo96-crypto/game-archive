@@ -39,11 +39,9 @@ type Premio = {
 
 function nombreCorto(nombre: string) {
   const partes = nombre.trim().split(/\s+/);
-
   if (partes.length === 1) {
     return partes[0];
   }
-
   return `${partes[0]} ${partes[partes.length - 2]}`;
 }
 
@@ -56,14 +54,12 @@ export default async function ExpofestPage() {
 
   if (eventoError || !evento) {
     console.error("Error cargando Expofest:", eventoError);
-
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-400">
             No se pudo cargar Expofest
           </h1>
-
           <p className="mt-3 text-zinc-400">
             El evento no pudo ser encontrado en Supabase.
           </p>
@@ -75,7 +71,7 @@ export default async function ExpofestPage() {
   const { data: edicionesData, error: edicionesError } =
     await supabase
       .from("ediciones")
-      .select("id, evento_id, año, fecha")
+      .select("*")
       .eq("evento_id", evento.id)
       .order("fecha", {
         ascending: false,
@@ -355,7 +351,6 @@ export default async function ExpofestPage() {
         <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
           <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
             <p>THE GAME ARCHIVE</p>
-
             <p>Juegos · Eventos · Campeones</p>
           </div>
         </footer>
