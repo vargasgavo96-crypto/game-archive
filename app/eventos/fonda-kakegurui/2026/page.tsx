@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import GaleriaFotos from "@/app/components/GaleriaFotos";
 
 type Persona = {
   id: number;
@@ -635,43 +636,7 @@ export default async function FondaKakegurui2026Page() {
         </section>
 
         {/* GALERÍA */}
-        <section>
-          <div className="mx-auto max-w-7xl px-6 py-24">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
-                Recuerdos
-              </p>
-
-              <h2 className="mt-4 text-5xl font-black">
-                GALERÍA
-              </h2>
-
-              <p className="mx-auto mt-5 max-w-xl text-zinc-400">
-                Fotografías de Fonda Kakegurui 2026.
-              </p>
-            </div>
-
-            <div className="mt-14 grid gap-5 md:grid-cols-3">
-              <div className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-zinc-900/70">
-                <p className="text-sm text-zinc-600">
-                  Próximamente
-                </p>
-              </div>
-
-              <div className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-zinc-900/70">
-                <p className="text-sm text-zinc-600">
-                  Próximamente
-                </p>
-              </div>
-
-              <div className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-zinc-900/70">
-                <p className="text-sm text-zinc-600">
-                  Próximamente
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <GaleriaFotos edicionId={edicion.id} />
 
         {/* FOOTER */}
         <footer className="border-t border-white/10 bg-black/50 px-6 py-10">

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import GaleriaFotos from "@/app/components/GaleriaFotos";
 
 type Evento = {
   id: number;
@@ -124,9 +125,7 @@ export default async function Expofest2025Page() {
 
   const { data: premio, error: premioError } = await supabase
     .from("premios")
-    .select(
-      "id, persona_id, edicion_id, nombre, descripcion"
-    )
+    .select("id, persona_id, edicion_id, nombre, descripcion")
     .eq("edicion_id", edicion.id)
     .maybeSingle();
 
@@ -139,9 +138,7 @@ export default async function Expofest2025Page() {
     error: participacionError,
   } = await supabase
     .from("participaciones")
-    .select(
-      "id, persona_id, edicion_id, posicion, puntos_finales"
-    )
+    .select("id, persona_id, edicion_id, posicion, puntos_finales")
     .eq("edicion_id", edicion.id)
     .eq("posicion", 1)
     .maybeSingle();
@@ -487,43 +484,7 @@ export default async function Expofest2025Page() {
         </section>
 
         {/* GALERÍA */}
-        <section className="border-t border-white/10 bg-black/30">
-          <div className="mx-auto max-w-7xl px-6 py-24">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
-                Recuerdos
-              </p>
-
-              <h2 className="mt-4 text-5xl font-black">
-                GALERÍA
-              </h2>
-
-              <p className="mx-auto mt-5 max-w-xl text-zinc-400">
-                Fotografías de la primera edición de Expofest.
-              </p>
-            </div>
-
-            <div className="mt-14 grid gap-5 md:grid-cols-3">
-              <div className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-zinc-900/70">
-                <p className="text-sm text-zinc-600">
-                  Próximamente
-                </p>
-              </div>
-
-              <div className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-zinc-900/70">
-                <p className="text-sm text-zinc-600">
-                  Próximamente
-                </p>
-              </div>
-
-              <div className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-zinc-900/70">
-                <p className="text-sm text-zinc-600">
-                  Próximamente
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <GaleriaFotos edicionId={edicion.id} />
 
         {/* FOOTER */}
         <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
