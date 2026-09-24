@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const CLAVE = "GAME2026";
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 type Foto = {
   id: number;
@@ -27,7 +28,6 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
   const [errorClave, setErrorClave] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [mensaje, setMensaje] = useState("");
-  const [fotoSeleccionada, setFotoSeleccionada] = useState<File | null>(null);
   const [eliminando, setEliminando] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +45,10 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
       .order("orden", { ascending: true })
       .order("created_at", { ascending: true });
 
+    if (error) {
+      console.error("ERROR CARGANDO GALERÍA:", error);
+    }
+
     if (!error) {
       setFotos((data ?? []) as Foto[]);
     }
@@ -56,7 +60,6 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
     setClave("");
     setErrorClave("");
     setMensaje("");
-    setFotoSeleccionada(null);
     setAutorizado(false);
     setModalAbierto(true);
   }
@@ -77,7 +80,51 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
     setErrorClave("La clave ingresada no es correcta.");
   }
 
-  async function subirFotos(event: React.ChangeEvent<HTMLInputElement>) {
+  function obtenerMensajeError(
+    error: unknown,
+    contexto: string
+  ) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "message" in error
+    ) {
+      const errorSupabase = error as {
+        message?: string;
+        code?: string;
+        details?: string;
+        hint?: string;
+      };
+
+      const partes = [
+        `${contexto}: ${errorSupabase.message ?? "Error desconocido"}`,
+      ];
+
+      if (errorSupabase.code) {
+        partes.push(`Código: ${errorSupabase.code}`);
+      }
+
+      if (errorSupabase.details) {
+        partes.push(`Detalle: ${errorSupabase.details}`);
+      }
+
+      if (errorSupabase.hint) {
+        partes.push(`Ayuda: ${errorSupabase.hint}`);
+      }
+
+      return partes.join(" | ");
+    }
+
+    if (error instanceof Error) {
+      return `${contexto}: ${error.message}`;
+    }
+
+    return `${contexto}: Error desconocido.`;
+  }
+
+  async function subirFotos(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
     const archivos = Array.from(event.target.files ?? []);
 
     if (archivos.length === 0) return;
@@ -95,27 +142,66 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
 
       for (const archivo of archivos) {
         if (!archivo.type.startsWith("image/")) {
-          continue;
+          throw new Error(
+            `El archivo "${archivo.name}" no es una imagen válida.`
+          );
         }
 
-        const extension = archivo.name.split(".").pop() || "jpg";
+        if (archivo.size > MAX_FILE_SIZE) {
+          throw new Error(
+            `La imagen "${archivo.name}" supera el límite de 20 MB.`
+          );
+        }
+
+        const extension =
+          archivo.name.split(".").pop()?.toLowerCase() || "jpg";
+
         const nombreUnico = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
         const ruta = `${edicionId}/${nombreUnico}`;
+
+        console.log("SUBIENDO FOTO:", {
+          nombre: archivo.name,
+          tipo: archivo.type,
+          tamaño: archivo.size,
+          ruta,
+          edicionId,
+        });
 
         const { error: uploadError } = await supabase.storage
           .from("eventos-fotos")
           .upload(ruta, archivo, {
             cacheControl: "3600",
             upsert: false,
+            contentType: archivo.type,
           });
 
         if (uploadError) {
-          throw uploadError;
+          throw new Error(
+            obtenerMensajeError(
+              uploadError,
+              "ERROR EN SUPABASE STORAGE"
+            )
+          );
         }
 
         const { data: publicUrlData } = supabase.storage
           .from("eventos-fotos")
           .getPublicUrl(ruta);
+
+        if (!publicUrlData?.publicUrl) {
+          await supabase.storage
+            .from("eventos-fotos")
+            .remove([ruta]);
+
+          throw new Error(
+            "Supabase no pudo generar la URL pública de la imagen."
+          );
+        }
+
+        console.log(
+          "FOTO SUBIDA. URL:",
+          publicUrlData.publicUrl
+        );
 
         const { error: insertError } = await supabase
           .from("galerias")
@@ -127,30 +213,54 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
           });
 
         if (insertError) {
-          await supabase.storage.from("eventos-fotos").remove([ruta]);
-          throw insertError;
+          console.error(
+            "ERROR INSERTANDO EN GALERIAS:",
+            insertError
+          );
+
+          await supabase.storage
+            .from("eventos-fotos")
+            .remove([ruta]);
+
+          throw new Error(
+            obtenerMensajeError(
+              insertError,
+              "ERROR EN TABLA GALERIAS"
+            )
+          );
         }
 
         ordenActual++;
       }
 
       await cargarFotos();
-      setMensaje("¡Fotos subidas correctamente!");
-      setFotoSeleccionada(null);
+
+      setMensaje(
+        archivos.length === 1
+          ? "¡Foto subida correctamente!"
+          : `¡${archivos.length} fotos subidas correctamente!`
+      );
 
       if (inputRef.current) {
         inputRef.current.value = "";
       }
     } catch (error) {
-      console.error(error);
-      setMensaje("Ocurrió un error al subir las fotos.");
+      console.error("ERROR COMPLETO AL SUBIR:", error);
+
+      setMensaje(
+        obtenerMensajeError(
+          error,
+          "NO SE PUDO SUBIR LA FOTO"
+        )
+      );
     } finally {
       setSubiendo(false);
     }
   }
 
   function obtenerRutaStorage(url: string) {
-    const marcador = "/storage/v1/object/public/eventos-fotos/";
+    const marcador =
+      "/storage/v1/object/public/eventos-fotos/";
 
     const posicion = url.indexOf(marcador);
 
@@ -158,7 +268,9 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
       return null;
     }
 
-    return decodeURIComponent(url.substring(posicion + marcador.length));
+    return decodeURIComponent(
+      url.substring(posicion + marcador.length)
+    );
   }
 
   async function eliminarFoto(foto: Foto) {
@@ -179,12 +291,18 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
       const ruta = obtenerRutaStorage(foto.imagen);
 
       if (ruta) {
-        const { error: storageError } = await supabase.storage
-          .from("eventos-fotos")
-          .remove([ruta]);
+        const { error: storageError } =
+          await supabase.storage
+            .from("eventos-fotos")
+            .remove([ruta]);
 
         if (storageError) {
-          throw storageError;
+          throw new Error(
+            obtenerMensajeError(
+              storageError,
+              "ERROR ELIMINANDO DEL STORAGE"
+            )
+          );
         }
       }
 
@@ -194,15 +312,28 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
         .eq("id", foto.id);
 
       if (deleteError) {
-        throw deleteError;
+        throw new Error(
+          obtenerMensajeError(
+            deleteError,
+            "ERROR ELIMINANDO DE GALERIAS"
+          )
+        );
       }
 
       setFotos((actuales) =>
-        actuales.filter((fotoActual) => fotoActual.id !== foto.id)
+        actuales.filter(
+          (fotoActual) => fotoActual.id !== foto.id
+        )
       );
     } catch (error) {
-      console.error(error);
-      window.alert("No se pudo eliminar la foto.");
+      console.error("ERROR ELIMINANDO FOTO:", error);
+
+      window.alert(
+        obtenerMensajeError(
+          error,
+          "NO SE PUDO ELIMINAR LA FOTO"
+        )
+      );
     } finally {
       setEliminando(null);
     }
@@ -215,9 +346,11 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
             Recuerdos
           </p>
+
           <h2 className="mt-3 text-4xl font-black md:text-5xl">
             GALERÍA
           </h2>
+
           <p className="mt-3 max-w-2xl text-zinc-400">
             Fotos de este evento compartidas por la comunidad.
           </p>
@@ -241,6 +374,7 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
           <p className="text-lg font-semibold text-white">
             Todavía no hay fotos
           </p>
+
           <p className="mt-2 text-sm text-zinc-500">
             ¡Sé la primera persona en agregar una!
           </p>
@@ -281,8 +415,11 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                 <p className="text-sm font-semibold uppercase tracking-[0.25em] text-violet-400">
                   Galería
                 </p>
+
                 <h3 className="mt-2 text-3xl font-black">
-                  {autorizado ? "AGREGAR FOTOS" : "ACCESO"}
+                  {autorizado
+                    ? "AGREGAR FOTOS"
+                    : "ACCESO"}
                 </h3>
               </div>
 
@@ -298,8 +435,8 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
             {!autorizado ? (
               <div className="mt-8">
                 <p className="text-sm leading-6 text-zinc-400">
-                  Ingresa la clave para agregar o eliminar fotos de esta
-                  galería.
+                  Ingresa la clave para agregar o eliminar fotos
+                  de esta galería.
                 </p>
 
                 <input
@@ -319,7 +456,9 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                 />
 
                 {errorClave && (
-                  <p className="mt-3 text-sm text-red-400">{errorClave}</p>
+                  <p className="mt-3 text-sm text-red-400">
+                    {errorClave}
+                  </p>
                 )}
 
                 <button
@@ -336,18 +475,26 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                   onClick={() => inputRef.current?.click()}
                   className="cursor-pointer rounded-3xl border border-dashed border-white/20 bg-white/5 p-10 text-center transition hover:border-violet-500 hover:bg-violet-500/5"
                 >
-                  <div className="text-5xl">📸</div>
+                  <div className="text-5xl">
+                    📸
+                  </div>
+
                   <p className="mt-4 font-bold">
                     Seleccionar fotos
                   </p>
+
                   <p className="mt-2 text-sm text-zinc-500">
                     Puedes seleccionar varias a la vez
+                  </p>
+
+                  <p className="mt-3 text-xs text-zinc-600">
+                    JPG, PNG, WEBP o HEIC · Máximo 20 MB por foto
                   </p>
 
                   <input
                     ref={inputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.heic,.heif"
                     multiple
                     className="hidden"
                     onChange={subirFotos}
@@ -361,7 +508,7 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                 )}
 
                 {mensaje && (
-                  <div className="mt-5 rounded-2xl bg-white/5 p-4 text-center text-sm text-zinc-300">
+                  <div className="mt-5 max-h-48 overflow-auto rounded-2xl bg-white/5 p-4 text-sm leading-6 text-zinc-300">
                     {mensaje}
                   </div>
                 )}
