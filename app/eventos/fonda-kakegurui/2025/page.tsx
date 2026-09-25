@@ -30,6 +30,14 @@ type Participacion = {
   puntos_finales: number | null;
 };
 
+type Premio = {
+  edicion_id: number;
+  persona_id: number;
+  nombre: string;
+  descripcion: string | null;
+  imagen: string | null;
+};
+
 const grupos = [
   {
     numero: "01",
@@ -188,6 +196,24 @@ export default async function FondaKakegurui2025Page() {
     ])
   );
 
+  /*
+   * La imagen del campeón pertenece al premio de la edición,
+   * no a la foto personal de la persona.
+   */
+  const { data: premio, error: premioError } = await supabase
+    .from("premios")
+    .select(
+      "edicion_id, persona_id, nombre, descripcion, imagen"
+    )
+    .eq("edicion_id", edicion.id)
+    .maybeSingle();
+
+  if (premioError) {
+    console.error("Error cargando premio:", premioError);
+  }
+
+  const premioCampeon: Premio | null = premio ?? null;
+
   const participacionGanadora = listaParticipaciones.find(
     (participacion) => participacion.posicion === 1
   );
@@ -206,6 +232,17 @@ export default async function FondaKakegurui2025Page() {
       (a, b) =>
         (a.posicion ?? 99) - (b.posicion ?? 99)
     );
+
+  /*
+   * Fuente principal:
+   * premios.imagen
+   *
+   * Fallback:
+   * imagen histórica conocida del campeón.
+   */
+  const imagenCampeon =
+    premioCampeon?.imagen ??
+    "/campeones/angeloperez.png";
 
   return (
     <main
@@ -482,22 +519,18 @@ export default async function FondaKakegurui2025Page() {
                 </div>
 
                 {/* FOTO DEL CAMPEÓN */}
-                <div className="relative min-h-[600px] overflow-hidden bg-black">
-                  {campeon?.imagen ? (
-                    <img
-                      src={campeon.imagen}
-                      alt={nombreWeb(campeon.nombre)}
-                      className="h-full w-full object-contain object-right"
-                    />
-                  ) : (
-                    <img
-                      src="/campeones/angeloperez.png"
-                      alt="Angelo Perez"
-                      className="h-full w-full object-contain object-right"
-                    />
-                  )}
+                <div className="relative min-h-[600px] overflow-hidden bg-zinc-900/90">
+                  <img
+                    src={imagenCampeon}
+                    alt={
+                      campeon
+                        ? nombreWeb(campeon.nombre)
+                        : "Angelo Perez"
+                    }
+                    className="absolute bottom-0 left-0 h-full w-auto max-w-none object-contain object-left-bottom"
+                  />
 
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-900 via-transparent to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-zinc-900/60 to-transparent" />
                 </div>
               </div>
             </div>

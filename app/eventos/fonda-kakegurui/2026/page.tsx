@@ -15,6 +15,14 @@ type Participacion = {
   puntos_finales: number | null;
 };
 
+type Premio = {
+  edicion_id: number;
+  persona_id: number;
+  nombre: string;
+  descripcion: string | null;
+  imagen: string | null;
+};
+
 const pruebas = [
   {
     numero: "01",
@@ -228,6 +236,27 @@ export default async function FondaKakegurui2026Page() {
   const campeon = participacionGanadora
     ? personaPorId.get(participacionGanadora.persona_id)
     : undefined;
+
+  const {
+    data: premio,
+    error: premioError,
+  } = await supabase
+    .from("premios")
+    .select(
+      "edicion_id, persona_id, nombre, descripcion, imagen"
+    )
+    .eq("edicion_id", edicion.id)
+    .maybeSingle();
+
+  if (premioError) {
+    console.error("Error cargando premio:", premioError);
+  }
+
+  const premioCampeon: Premio | null = premio ?? null;
+
+  const imagenCampeon =
+    premioCampeon?.imagen ??
+    "/campeones/cristobal2026.png";
 
   const podio = listaParticipaciones
     .filter(
@@ -491,6 +520,69 @@ export default async function FondaKakegurui2026Page() {
           </div>
         </section>
 
+        {/* PODIO */}
+        <section className="border-y border-white/10 bg-black/40">
+          <div className="mx-auto max-w-5xl px-6 py-24">
+            <div className="text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
+                Clasificación final
+              </p>
+
+              <h2 className="mt-4 text-5xl font-black">
+                EL PODIO
+              </h2>
+            </div>
+
+            <div className="mt-14 grid gap-6 md:grid-cols-3">
+              {podio.map((participacion) => {
+                const jugador = personaPorId.get(
+                  participacion.persona_id
+                );
+
+                if (!jugador) {
+                  return null;
+                }
+
+                const posicion = participacion.posicion;
+
+                return (
+                  <div
+                    key={participacion.id}
+                    className={`rounded-3xl border p-8 text-center ${
+                      posicion === 1
+                        ? "border-violet-500/50 bg-violet-950/40"
+                        : "border-white/10 bg-zinc-900/90"
+                    }`}
+                  >
+                    <span className="text-6xl">
+                      {posicion === 1
+                        ? "🥇"
+                        : posicion === 2
+                          ? "🥈"
+                          : "🥉"}
+                    </span>
+
+                    <p className="mt-6 text-sm uppercase tracking-widest text-zinc-500">
+                      {posicion}° lugar
+                    </p>
+
+                    <h3 className="mt-2 text-2xl font-black">
+                      {nombreWeb(jugador.nombre)}
+                    </h3>
+
+                    <p className="mt-3 text-xl font-bold text-violet-400">
+                      {(
+                        participacion.puntos_finales ?? 0
+                      ).toLocaleString("es-CL")}{" "}
+                      pts
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         {/* CAMPEÓN */}
         <section className="mx-auto max-w-7xl px-6 py-28">
           <div className="text-center">
@@ -551,86 +643,20 @@ export default async function FondaKakegurui2026Page() {
                 </div>
               </div>
 
-              <div className="relative min-h-[650px] overflow-hidden bg-black">
-                {campeon?.imagen ? (
-                  <img
-                    src={campeon.imagen}
-                    alt={nombreWeb(campeon.nombre)}
-                    className="h-full w-full object-contain object-right"
-                  />
-                ) : (
-                  <img
-                    src="/campeones/cristobal2026.png"
-                    alt="Cristóbal Urrutia"
-                    className="h-full w-full object-contain object-right"
-                  />
-                )}
+              {/* FOTO DEL CAMPEÓN */}
+              <div className="relative min-h-[650px] overflow-hidden bg-zinc-900/90">
+                <img
+                  src={imagenCampeon}
+                  alt={
+                    campeon
+                      ? nombreWeb(campeon.nombre)
+                      : "Cristóbal Urrutia"
+                  }
+                  className="absolute bottom-0 left-0 h-full w-auto max-w-none object-contain object-left-bottom"
+                />
 
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-900 via-transparent to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-zinc-900/60 to-transparent" />
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* PODIO */}
-        <section className="border-y border-white/10 bg-black/40">
-          <div className="mx-auto max-w-5xl px-6 py-24">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
-                Clasificación final
-              </p>
-
-              <h2 className="mt-4 text-5xl font-black">
-                EL PODIO
-              </h2>
-            </div>
-
-            <div className="mt-14 grid gap-6 md:grid-cols-3">
-              {podio.map((participacion) => {
-                const jugador = personaPorId.get(
-                  participacion.persona_id
-                );
-
-                if (!jugador) {
-                  return null;
-                }
-
-                const posicion = participacion.posicion;
-
-                return (
-                  <div
-                    key={participacion.id}
-                    className={`rounded-3xl border p-8 text-center ${
-                      posicion === 1
-                        ? "border-violet-500/50 bg-violet-950/40"
-                        : "border-white/10 bg-zinc-900/90"
-                    }`}
-                  >
-                    <span className="text-6xl">
-                      {posicion === 1
-                        ? "🥇"
-                        : posicion === 2
-                          ? "🥈"
-                          : "🥉"}
-                    </span>
-
-                    <p className="mt-6 text-sm uppercase tracking-widest text-zinc-500">
-                      {posicion}° lugar
-                    </p>
-
-                    <h3 className="mt-2 text-2xl font-black">
-                      {nombreWeb(jugador.nombre)}
-                    </h3>
-
-                    <p className="mt-3 text-xl font-bold text-violet-400">
-                      {(
-                        participacion.puntos_finales ?? 0
-                      ).toLocaleString("es-CL")}{" "}
-                      pts
-                    </p>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </section>

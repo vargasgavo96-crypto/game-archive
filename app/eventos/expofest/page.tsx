@@ -35,13 +35,16 @@ type Premio = {
   edicion_id: number;
   nombre: string;
   descripcion: string | null;
+  imagen: string | null;
 };
 
 function nombreCorto(nombre: string) {
   const partes = nombre.trim().split(/\s+/);
+
   if (partes.length === 1) {
     return partes[0];
   }
+
   return `${partes[0]} ${partes[partes.length - 2]}`;
 }
 
@@ -54,12 +57,14 @@ export default async function ExpofestPage() {
 
   if (eventoError || !evento) {
     console.error("Error cargando Expofest:", eventoError);
+
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-400">
             No se pudo cargar Expofest
           </h1>
+
           <p className="mt-3 text-zinc-400">
             El evento no pudo ser encontrado en Supabase.
           </p>
@@ -92,7 +97,7 @@ export default async function ExpofestPage() {
       ? await supabase
           .from("premios")
           .select(
-            "id, persona_id, edicion_id, nombre, descripcion"
+            "id, persona_id, edicion_id, nombre, descripcion, imagen"
           )
           .in("edicion_id", edicionIds)
       : { data: [], error: null };
@@ -128,9 +133,12 @@ export default async function ExpofestPage() {
 
   const personaIds = [
     ...new Set([
-      ...premios.map((premio) => premio.persona_id),
+      ...premios.map(
+        (premio) => premio.persona_id
+      ),
       ...participacionesGanadoras.map(
-        (participacion) => participacion.persona_id
+        (participacion) =>
+          participacion.persona_id
       ),
     ]),
   ];
@@ -144,7 +152,10 @@ export default async function ExpofestPage() {
       : { data: [], error: null };
 
   if (personasError) {
-    console.error("Error cargando personas:", personasError);
+    console.error(
+      "Error cargando personas:",
+      personasError
+    );
   }
 
   const personas: Persona[] = personasData ?? [];
@@ -164,10 +175,12 @@ export default async function ExpofestPage() {
   );
 
   const participacionPorEdicion = new Map(
-    participacionesGanadoras.map((participacion) => [
-      participacion.edicion_id,
-      participacion,
-    ])
+    participacionesGanadoras.map(
+      (participacion) => [
+        participacion.edicion_id,
+        participacion,
+      ]
+    )
   );
 
   return (
@@ -261,7 +274,9 @@ export default async function ExpofestPage() {
                   );
 
                   const participacion =
-                    participacionPorEdicion.get(edicion.id);
+                    participacionPorEdicion.get(
+                      edicion.id
+                    );
 
                   const ganadorId =
                     premio?.persona_id ??
@@ -271,6 +286,17 @@ export default async function ExpofestPage() {
                     ? personaPorId.get(ganadorId)
                     : undefined;
 
+                  /*
+                   * La imagen de portada pertenece al premio/campeón
+                   * de la edición.
+                   *
+                   * Primero usamos premios.imagen.
+                   * Como respaldo usamos personas.imagen.
+                   */
+                  const imagenGanador =
+                    premio?.imagen ??
+                    ganador?.imagen;
+
                   return (
                     <a
                       key={edicion.id}
@@ -279,21 +305,25 @@ export default async function ExpofestPage() {
                     >
                       {/* PORTADA */}
                       <div className="relative h-[520px] overflow-hidden bg-zinc-900">
-                        {ganador?.imagen && (
+                        {imagenGanador && (
                           <div
                             className="absolute inset-0 scale-110 bg-cover bg-center opacity-30 blur-2xl transition duration-700 group-hover:scale-125"
                             style={{
-                              backgroundImage: `url('${ganador.imagen}')`,
+                              backgroundImage: `url('${imagenGanador}')`,
                             }}
                           />
                         )}
 
                         <div className="absolute inset-0 bg-black/40" />
 
-                        {ganador?.imagen ? (
+                        {imagenGanador ? (
                           <img
-                            src={ganador.imagen}
-                            alt={nombreCorto(ganador.nombre)}
+                            src={imagenGanador}
+                            alt={
+                              ganador
+                                ? nombreCorto(ganador.nombre)
+                                : "Ganador de Expofest"
+                            }
                             className="relative z-10 h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
                           />
                         ) : (

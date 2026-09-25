@@ -28,6 +28,7 @@ type Premio = {
   edicion_id: number;
   nombre: string;
   descripcion: string | null;
+  imagen: string | null;
 };
 
 type Participacion = {
@@ -71,9 +72,11 @@ const presentaciones = [
 
 function nombreCorto(nombre: string) {
   const partes = nombre.trim().split(/\s+/);
+
   if (partes.length === 1) {
     return partes[0];
   }
+
   return `${partes[0]} ${partes[partes.length - 2]}`;
 }
 
@@ -86,12 +89,14 @@ export default async function Expofest2025Page() {
 
   if (eventoError || !evento) {
     console.error("Error cargando Expofest:", eventoError);
+
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-400">
             No se pudo cargar Expofest
           </h1>
+
           <p className="mt-3 text-zinc-400">
             El evento no pudo ser encontrado en Supabase.
           </p>
@@ -109,12 +114,14 @@ export default async function Expofest2025Page() {
 
   if (edicionError || !edicion) {
     console.error("Error cargando edición:", edicionError);
+
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-400">
             No se encontró Expofest 2025
           </h1>
+
           <p className="mt-3 text-zinc-400">
             Revisa que la edición 2025 exista en Supabase.
           </p>
@@ -125,7 +132,9 @@ export default async function Expofest2025Page() {
 
   const { data: premio, error: premioError } = await supabase
     .from("premios")
-    .select("id, persona_id, edicion_id, nombre, descripcion")
+    .select(
+      "id, persona_id, edicion_id, nombre, descripcion, imagen"
+    )
     .eq("edicion_id", edicion.id)
     .maybeSingle();
 
@@ -178,8 +187,15 @@ export default async function Expofest2025Page() {
     ? nombreCorto(ganadora.nombre)
     : "Leslie Novoa";
 
+  /*
+   * La imagen oficial de la campeona pertenece al premio.
+   * Si por alguna razón el premio no tiene imagen,
+   * usamos la imagen de la persona como respaldo.
+   */
   const imagenGanadora =
-    ganadora?.imagen ?? "/campeones/leslie2025.png";
+    premio?.imagen ??
+    ganadora?.imagen ??
+    "/campeones/leslie2025.png";
 
   return (
     <main

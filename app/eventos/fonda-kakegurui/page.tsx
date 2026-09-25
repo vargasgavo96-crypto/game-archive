@@ -26,6 +26,7 @@ type Premio = {
   persona_id: number;
   nombre: string;
   descripcion: string | null;
+  imagen: string | null;
 };
 
 export default async function FondaKakeguruiPage() {
@@ -81,7 +82,9 @@ export default async function FondaKakeguruiPage() {
 
   const { data: premios, error: premiosError } = await supabase
     .from("premios")
-    .select("edicion_id, persona_id, nombre, descripcion")
+    .select(
+      "edicion_id, persona_id, nombre, descripcion, imagen"
+    )
     .in(
       "edicion_id",
       listaEdiciones.map((edicion) => edicion.id)
@@ -93,7 +96,9 @@ export default async function FondaKakeguruiPage() {
 
   const listaPremios: Premio[] = premios ?? [];
 
-  const personaIds = listaPremios.map((premio) => premio.persona_id);
+  const personaIds = listaPremios.map(
+    (premio) => premio.persona_id
+  );
 
   const { data: personas, error: personasError } = personaIds.length
     ? await supabase
@@ -114,7 +119,10 @@ export default async function FondaKakeguruiPage() {
   );
 
   const premioPorEdicion = new Map(
-    listaPremios.map((premio) => [premio.edicion_id, premio])
+    listaPremios.map((premio) => [
+      premio.edicion_id,
+      premio,
+    ])
   );
 
   function nombreCorto(nombre: string) {
@@ -204,11 +212,22 @@ export default async function FondaKakeguruiPage() {
 
             <div className="mt-14 grid gap-8 md:grid-cols-2">
               {listaEdiciones.map((edicion) => {
-                const premio = premioPorEdicion.get(edicion.id);
+                const premio = premioPorEdicion.get(
+                  edicion.id
+                );
 
                 const ganador = premio
                   ? personaPorId.get(premio.persona_id)
                   : undefined;
+
+                /*
+                 * La portada utiliza la imagen específica
+                 * del campeón guardada en premios.imagen.
+                 *
+                 * personas.imagen NO se utiliza para la portada.
+                 */
+                const imagenCampeon =
+                  premio?.imagen ?? null;
 
                 return (
                   <a
@@ -217,10 +236,14 @@ export default async function FondaKakeguruiPage() {
                     className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
                   >
                     <div className="relative h-96 overflow-hidden bg-black">
-                      {ganador?.imagen ? (
+                      {imagenCampeon ? (
                         <img
-                          src={ganador.imagen}
-                          alt={nombreCorto(ganador.nombre)}
+                          src={imagenCampeon}
+                          alt={
+                            ganador
+                              ? nombreCorto(ganador.nombre)
+                              : "Campeón de Fonda Kakegurui"
+                          }
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                         />
                       ) : evento.logo ? (

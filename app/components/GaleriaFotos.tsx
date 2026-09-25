@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const CLAVE = "GAME2026";
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 type Foto = {
   id: number;
@@ -19,42 +18,50 @@ type GaleriaFotosProps = {
   edicionId: number;
 };
 
-export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
+export default function GaleriaFotos({
+  edicionId,
+}: GaleriaFotosProps) {
   const [fotos, setFotos] = useState<Foto[]>([]);
   const [cargando, setCargando] = useState(true);
+
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [visorAbierto, setVisorAbierto] = useState(false);
+
   const [clave, setClave] = useState("");
   const [autorizado, setAutorizado] = useState(false);
   const [errorClave, setErrorClave] = useState("");
+
   const [subiendo, setSubiendo] = useState(false);
   const [mensaje, setMensaje] = useState("");
+
+  const [fotoVisor, setFotoVisor] = useState(0);
   const [eliminando, setEliminando] = useState<number | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    async function cargarFotos() {
+      setCargando(true);
+
+      const { data, error } = await supabase
+        .from("galerias")
+        .select("*")
+        .eq("edicion_id", edicionId)
+        .order("orden", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error cargando galería:", error);
+        setFotos([]);
+      } else {
+        setFotos((data ?? []) as Foto[]);
+      }
+
+      setCargando(false);
+    }
+
     cargarFotos();
   }, [edicionId]);
-
-  async function cargarFotos() {
-    setCargando(true);
-
-    const { data, error } = await supabase
-      .from("galerias")
-      .select("*")
-      .eq("edicion_id", edicionId)
-      .order("orden", { ascending: true })
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("ERROR CARGANDO GALERÍA:", error);
-    }
-
-    if (!error) {
-      setFotos((data ?? []) as Foto[]);
-    }
-
-    setCargando(false);
-  }
 
   function abrirModal() {
     setClave("");
@@ -69,6 +76,63 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
     setModalAbierto(false);
   }
 
+  function abrirVisor(indice: number) {
+    setFotoVisor(indice);
+    setVisorAbierto(true);
+  }
+
+  function cerrarVisor() {
+    setVisorAbierto(false);
+  }
+
+  function fotoAnterior() {
+    if (fotos.length <= 1) return;
+
+    setFotoVisor((actual) =>
+      actual === 0 ? fotos.length - 1 : actual - 1
+    );
+  }
+
+  function siguienteFoto() {
+    if (fotos.length <= 1) return;
+
+    setFotoVisor((actual) =>
+      actual === fotos.length - 1 ? 0 : actual + 1
+    );
+  }
+
+  useEffect(() => {
+    if (!visorAbierto) return;
+
+    function manejarTecla(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        cerrarVisor();
+      }
+
+      if (event.key === "ArrowLeft") {
+        setFotoVisor((actual) =>
+          actual === 0 ? fotos.length - 1 : actual - 1
+        );
+      }
+
+      if (event.key === "ArrowRight") {
+        setFotoVisor((actual) =>
+          actual === fotos.length - 1 ? 0 : actual + 1
+        );
+      }
+    }
+
+    document.addEventListener("keydown", manejarTecla);
+
+    const overflowAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", manejarTecla);
+      document.body.style.overflow = overflowAnterior;
+    };
+  }, [visorAbierto, fotos.length]);
+
   function validarClave() {
     if (clave === CLAVE) {
       setAutorizado(true);
@@ -78,48 +142,6 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
     }
 
     setErrorClave("La clave ingresada no es correcta.");
-  }
-
-  function obtenerMensajeError(
-    error: unknown,
-    contexto: string
-  ) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "message" in error
-    ) {
-      const errorSupabase = error as {
-        message?: string;
-        code?: string;
-        details?: string;
-        hint?: string;
-      };
-
-      const partes = [
-        `${contexto}: ${errorSupabase.message ?? "Error desconocido"}`,
-      ];
-
-      if (errorSupabase.code) {
-        partes.push(`Código: ${errorSupabase.code}`);
-      }
-
-      if (errorSupabase.details) {
-        partes.push(`Detalle: ${errorSupabase.details}`);
-      }
-
-      if (errorSupabase.hint) {
-        partes.push(`Ayuda: ${errorSupabase.hint}`);
-      }
-
-      return partes.join(" | ");
-    }
-
-    if (error instanceof Error) {
-      return `${contexto}: ${error.message}`;
-    }
-
-    return `${contexto}: Error desconocido.`;
   }
 
   async function subirFotos(
@@ -142,66 +164,29 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
 
       for (const archivo of archivos) {
         if (!archivo.type.startsWith("image/")) {
-          throw new Error(
-            `El archivo "${archivo.name}" no es una imagen válida.`
-          );
-        }
-
-        if (archivo.size > MAX_FILE_SIZE) {
-          throw new Error(
-            `La imagen "${archivo.name}" supera el límite de 20 MB.`
-          );
+          continue;
         }
 
         const extension =
-          archivo.name.split(".").pop()?.toLowerCase() || "jpg";
+          archivo.name.split(".").pop() || "jpg";
 
         const nombreUnico = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
         const ruta = `${edicionId}/${nombreUnico}`;
-
-        console.log("SUBIENDO FOTO:", {
-          nombre: archivo.name,
-          tipo: archivo.type,
-          tamaño: archivo.size,
-          ruta,
-          edicionId,
-        });
 
         const { error: uploadError } = await supabase.storage
           .from("eventos-fotos")
           .upload(ruta, archivo, {
             cacheControl: "3600",
             upsert: false,
-            contentType: archivo.type,
           });
 
         if (uploadError) {
-          throw new Error(
-            obtenerMensajeError(
-              uploadError,
-              "ERROR EN SUPABASE STORAGE"
-            )
-          );
+          throw uploadError;
         }
 
         const { data: publicUrlData } = supabase.storage
           .from("eventos-fotos")
           .getPublicUrl(ruta);
-
-        if (!publicUrlData?.publicUrl) {
-          await supabase.storage
-            .from("eventos-fotos")
-            .remove([ruta]);
-
-          throw new Error(
-            "Supabase no pudo generar la URL pública de la imagen."
-          );
-        }
-
-        console.log(
-          "FOTO SUBIDA. URL:",
-          publicUrlData.publicUrl
-        );
 
         const { error: insertError } = await supabase
           .from("galerias")
@@ -213,46 +198,35 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
           });
 
         if (insertError) {
-          console.error(
-            "ERROR INSERTANDO EN GALERIAS:",
-            insertError
-          );
-
           await supabase.storage
             .from("eventos-fotos")
             .remove([ruta]);
 
-          throw new Error(
-            obtenerMensajeError(
-              insertError,
-              "ERROR EN TABLA GALERIAS"
-            )
-          );
+          throw insertError;
         }
 
         ordenActual++;
       }
 
-      await cargarFotos();
+      const { data, error } = await supabase
+        .from("galerias")
+        .select("*")
+        .eq("edicion_id", edicionId)
+        .order("orden", { ascending: true })
+        .order("created_at", { ascending: true });
 
-      setMensaje(
-        archivos.length === 1
-          ? "¡Foto subida correctamente!"
-          : `¡${archivos.length} fotos subidas correctamente!`
-      );
+      if (!error) {
+        setFotos((data ?? []) as Foto[]);
+      }
+
+      setMensaje("¡Fotos subidas correctamente!");
 
       if (inputRef.current) {
         inputRef.current.value = "";
       }
     } catch (error) {
-      console.error("ERROR COMPLETO AL SUBIR:", error);
-
-      setMensaje(
-        obtenerMensajeError(
-          error,
-          "NO SE PUDO SUBIR LA FOTO"
-        )
-      );
+      console.error("Error subiendo fotos:", error);
+      setMensaje("Ocurrió un error al subir las fotos.");
     } finally {
       setSubiendo(false);
     }
@@ -291,18 +265,12 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
       const ruta = obtenerRutaStorage(foto.imagen);
 
       if (ruta) {
-        const { error: storageError } =
-          await supabase.storage
-            .from("eventos-fotos")
-            .remove([ruta]);
+        const { error: storageError } = await supabase.storage
+          .from("eventos-fotos")
+          .remove([ruta]);
 
         if (storageError) {
-          throw new Error(
-            obtenerMensajeError(
-              storageError,
-              "ERROR ELIMINANDO DEL STORAGE"
-            )
-          );
+          throw storageError;
         }
       }
 
@@ -312,12 +280,7 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
         .eq("id", foto.id);
 
       if (deleteError) {
-        throw new Error(
-          obtenerMensajeError(
-            deleteError,
-            "ERROR ELIMINANDO DE GALERIAS"
-          )
-        );
+        throw deleteError;
       }
 
       setFotos((actuales) =>
@@ -325,19 +288,19 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
           (fotoActual) => fotoActual.id !== foto.id
         )
       );
-    } catch (error) {
-      console.error("ERROR ELIMINANDO FOTO:", error);
 
-      window.alert(
-        obtenerMensajeError(
-          error,
-          "NO SE PUDO ELIMINAR LA FOTO"
-        )
+      setFotoVisor((actual) =>
+        Math.min(actual, Math.max(0, fotos.length - 2))
       );
+    } catch (error) {
+      console.error("Error eliminando foto:", error);
+      window.alert("No se pudo eliminar la foto.");
     } finally {
       setEliminando(null);
     }
   }
+
+  const fotosVista = fotos.slice(0, 4);
 
   return (
     <section className="mt-20">
@@ -380,35 +343,172 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {fotos.map((foto) => (
-            <div
-              key={foto.id}
-              className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-zinc-900"
-            >
-              <img
-                src={foto.imagen}
-                alt="Foto del evento"
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-              />
-
-              {autorizado && (
+        <>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {fotosVista.map((foto, index) => (
+              <div
+                key={foto.id}
+                className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-zinc-900"
+              >
                 <button
                   type="button"
-                  onClick={() => eliminarFoto(foto)}
-                  disabled={eliminando === foto.id}
-                  className="absolute right-3 top-3 rounded-full bg-black/80 px-3 py-2 text-xs font-bold text-white opacity-0 backdrop-blur transition group-hover:opacity-100 hover:bg-red-600 disabled:opacity-50"
+                  onClick={() => abrirVisor(index)}
+                  className="absolute inset-0 h-full w-full cursor-pointer"
+                  aria-label={`Abrir foto ${index + 1}`}
                 >
-                  {eliminando === foto.id ? "..." : "🗑️"}
+                  <img
+                    src={foto.imagen}
+                    alt={
+                      foto.descripcion ?? "Foto del evento"
+                    }
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+
+                  <div className="pointer-events-none absolute inset-0 bg-black/0 transition duration-300 group-hover:bg-black/20" />
+
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition duration-300 group-hover:opacity-100">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-xl text-white backdrop-blur-sm">
+                      ⛶
+                    </div>
+                  </div>
                 </button>
-              )}
+
+                {autorizado && (
+                  <button
+                    type="button"
+                    onClick={() => eliminarFoto(foto)}
+                    disabled={eliminando === foto.id}
+                    className="absolute right-3 top-3 z-10 rounded-full bg-black/80 px-3 py-2 text-xs font-bold text-white opacity-0 backdrop-blur transition group-hover:opacity-100 hover:bg-red-600 disabled:opacity-50"
+                  >
+                    {eliminando === foto.id ? "..." : "🗑️"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {fotos.length > 4 && (
+            <button
+              type="button"
+              onClick={() => abrirVisor(0)}
+              className="mx-auto mt-7 block rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-white transition hover:border-violet-500/40 hover:bg-violet-500/10"
+            >
+              VER TODAS LAS FOTOS →
+            </button>
+          )}
+        </>
+      )}
+
+      {/* VISOR */}
+      {visorAbierto && fotos.length > 0 && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md lg:left-72"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              cerrarVisor();
+            }
+          }}
+        >
+          <div className="flex h-full w-full flex-col">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-black/50 px-5 py-4 md:px-8">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-violet-400">
+                  Recuerdos
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-white md:text-2xl">
+                  GALERÍA
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={cerrarVisor}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-2xl text-zinc-300 transition hover:bg-white/10 hover:text-white"
+                aria-label="Cerrar galería"
+              >
+                ×
+              </button>
             </div>
-          ))}
+
+            <div className="relative flex min-h-0 flex-1 items-center justify-center px-4 py-6 md:px-16 md:py-8">
+              <img
+                src={fotos[fotoVisor].imagen}
+                alt={
+                  fotos[fotoVisor].descripcion ??
+                  "Foto del evento"
+                }
+                className="max-h-full max-w-full object-contain"
+              />
+
+              {fotos.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={fotoAnterior}
+                    className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/60 text-3xl text-white backdrop-blur-md transition hover:bg-violet-600 md:left-8"
+                    aria-label="Foto anterior"
+                  >
+                    ‹
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={siguienteFoto}
+                    className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/60 text-3xl text-white backdrop-blur-md transition hover:bg-violet-600 md:right-8"
+                    aria-label="Foto siguiente"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+
+              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm font-bold text-white backdrop-blur-md">
+                {fotoVisor + 1} / {fotos.length}
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-white/10 bg-black/70 px-4 py-4 md:px-8">
+              <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto pb-1">
+                {fotos.map((foto, index) => (
+                  <button
+                    key={foto.id}
+                    type="button"
+                    onClick={() => setFotoVisor(index)}
+                    className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition md:h-20 md:w-28 ${
+                      index === fotoVisor
+                        ? "border-violet-500 opacity-100"
+                        : "border-transparent opacity-50 hover:opacity-100"
+                    }`}
+                    aria-label={`Ver foto ${index + 1}`}
+                  >
+                    <img
+                      src={foto.imagen}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+
+                    {index === fotoVisor && (
+                      <div className="absolute inset-0 bg-violet-500/10" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
+      {/* MODAL AGREGAR FOTO */}
       {modalAbierto && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              cerrarModal();
+            }
+          }}
+        >
           <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-zinc-950 p-8 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -417,9 +517,7 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                 </p>
 
                 <h3 className="mt-2 text-3xl font-black">
-                  {autorizado
-                    ? "AGREGAR FOTOS"
-                    : "ACCESO"}
+                  {autorizado ? "AGREGAR FOTOS" : "ACCESO"}
                 </h3>
               </div>
 
@@ -435,8 +533,8 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
             {!autorizado ? (
               <div className="mt-8">
                 <p className="text-sm leading-6 text-zinc-400">
-                  Ingresa la clave para agregar o eliminar fotos
-                  de esta galería.
+                  Ingresa la clave para agregar o eliminar fotos de
+                  esta galería.
                 </p>
 
                 <input
@@ -475,9 +573,7 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                   onClick={() => inputRef.current?.click()}
                   className="cursor-pointer rounded-3xl border border-dashed border-white/20 bg-white/5 p-10 text-center transition hover:border-violet-500 hover:bg-violet-500/5"
                 >
-                  <div className="text-5xl">
-                    📸
-                  </div>
+                  <div className="text-5xl">📸</div>
 
                   <p className="mt-4 font-bold">
                     Seleccionar fotos
@@ -487,14 +583,10 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                     Puedes seleccionar varias a la vez
                   </p>
 
-                  <p className="mt-3 text-xs text-zinc-600">
-                    JPG, PNG, WEBP o HEIC · Máximo 20 MB por foto
-                  </p>
-
                   <input
                     ref={inputRef}
                     type="file"
-                    accept="image/*,.heic,.heif"
+                    accept="image/*"
                     multiple
                     className="hidden"
                     onChange={subirFotos}
@@ -508,7 +600,7 @@ export default function GaleriaFotos({ edicionId }: GaleriaFotosProps) {
                 )}
 
                 {mensaje && (
-                  <div className="mt-5 max-h-48 overflow-auto rounded-2xl bg-white/5 p-4 text-sm leading-6 text-zinc-300">
+                  <div className="mt-5 rounded-2xl bg-white/5 p-4 text-center text-sm text-zinc-300">
                     {mensaje}
                   </div>
                 )}

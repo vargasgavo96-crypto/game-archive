@@ -33,6 +33,7 @@ type Premio = {
   persona_id: number;
   nombre: string;
   descripcion: string | null;
+  imagen: string | null;
 };
 
 function nombreCorto(nombre: string) {
@@ -73,7 +74,7 @@ export default async function Home() {
 
     supabase
       .from("premios")
-      .select("edicion_id, persona_id, nombre, descripcion"),
+      .select("edicion_id, persona_id, nombre, descripcion, imagen"),
   ]);
 
   if (
@@ -134,9 +135,6 @@ export default async function Home() {
     listaEventos.map((evento) => [evento.id, evento])
   );
 
-  /*
-   * Buscamos específicamente a quien terminó en posición 1.
-   */
   const participacionGanadoraPorEdicion = new Map(
     listaParticipaciones
       .filter((participacion) => participacion.posicion === 1)
@@ -156,14 +154,8 @@ export default async function Home() {
 
   const ultimoEvento = edicionesOrdenadas[0];
 
-  /*
-   * Hall of Fame:
-   * primero buscamos el campeón oficial en premios.
-   * Si no existe, usamos la participación con posición 1.
-   */
   const hallOfFame = edicionesOrdenadas.slice(0, 3).map((edicion) => {
     const evento = eventoPorId.get(edicion.evento_id);
-
     const premio = premioPorEdicion.get(edicion.id);
 
     const participacionGanadora =
@@ -238,7 +230,6 @@ export default async function Home() {
 
               {(() => {
                 const evento = eventoPorId.get(ultimoEvento.evento_id);
-
                 const premio = premioPorEdicion.get(ultimoEvento.id);
 
                 const participacionGanadora =
@@ -294,12 +285,15 @@ export default async function Home() {
                         </a>
                       </div>
 
-                      {/* FOTO DEL CAMPEÓN */}
                       <div className="relative min-h-[420px] overflow-hidden bg-black">
-                        {persona?.imagen ? (
+                        {premio?.imagen ? (
                           <img
-                            src={persona.imagen}
-                            alt={nombreCorto(persona.nombre)}
+                            src={premio.imagen}
+                            alt={
+                              persona
+                                ? nombreCorto(persona.nombre)
+                                : premio.nombre
+                            }
                             className="absolute inset-0 h-full w-full object-cover"
                           />
                         ) : evento?.logo ? (
@@ -359,7 +353,7 @@ export default async function Home() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
+          <div className="mt-14 grid items-stretch gap-6 md:grid-cols-3">
             {hallOfFame.map((item, index) => {
               if (!item.evento || !item.persona) return null;
 
@@ -367,46 +361,83 @@ export default async function Home() {
                 <a
                   key={item.edicion.id}
                   href={`/eventos/${item.evento.slug}/${item.edicion.año}`}
-                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 p-8 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
+                  className={`group relative flex h-[760px] flex-col overflow-hidden rounded-3xl border bg-zinc-900/90 px-8 pb-8 pt-8 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50 ${
+                    index === 0
+                      ? "border-violet-500/70"
+                      : "border-white/10"
+                  }`}
                 >
+                  {/* POSICIÓN */}
                   <div className="absolute right-5 top-5 text-2xl text-zinc-700">
                     #{index + 1}
                   </div>
 
-                  {/* FOTO DEL CAMPEÓN */}
-                  <div className="relative mx-auto flex h-40 w-40 items-center justify-center overflow-hidden rounded-full border-4 border-violet-500 bg-black shadow-lg shadow-violet-500/20">
-                    {item.persona.imagen ? (
-                      <img
-                        src={item.persona.imagen}
-                        alt={nombreCorto(item.persona.nombre)}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : item.evento.logo ? (
-                      <img
-                        src={item.evento.logo}
-                        alt={item.evento.nombre}
-                        className="max-h-24 max-w-24 object-contain"
-                      />
-                    ) : (
-                      <span className="text-5xl">👑</span>
-                    )}
+                  {/* FOTO */}
+                  <div className="flex h-[430px] shrink-0 items-center justify-center">
+                    <div className="relative h-[300px] w-[300px] shrink-0 overflow-hidden rounded-full border-4 border-violet-500 bg-black shadow-lg shadow-violet-500/20">
+                      {item.premio?.imagen ? (
+                        <img
+                          src={item.premio.imagen}
+                          alt={nombreCorto(item.persona.nombre)}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : item.evento.logo ? (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <img
+                            src={item.evento.logo}
+                            alt={item.evento.nombre}
+                            className="max-h-32 max-w-32 object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <span className="text-5xl">👑</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <p className="mt-8 text-center text-xs uppercase tracking-[0.2em] text-violet-400">
-                    {item.edicion.año}
-                  </p>
+                  {/* INFORMACIÓN */}
+                  <div className="flex flex-1 flex-col items-center text-center">
+                    {/* AÑO */}
+                    <div className="flex h-[32px] shrink-0 items-center justify-center">
+                      <p className="text-sm uppercase tracking-[0.3em] text-violet-400">
+                        {item.edicion.año}
+                      </p>
+                    </div>
 
-                  <h3 className="mt-2 text-center text-3xl font-bold">
-                    {nombreCorto(item.persona.nombre)}
-                  </h3>
+                    {/* NOMBRE - DOS LÍNEAS RESERVADAS */}
+                    <div className="mt-3 flex h-[76px] w-full shrink-0 items-center justify-center">
+                      <h3 className="line-clamp-2 max-w-full text-center text-3xl font-bold leading-tight">
+                        {nombreCorto(item.persona.nombre)}
+                      </h3>
+                    </div>
 
-                  <p className="mt-2 text-center text-sm text-zinc-400">
-                    {item.premio?.nombre ?? "Campeón"}{" "}
-                    {item.evento.nombre}
-                  </p>
+                    {/* TÍTULO */}
+                    <div className="mt-2 flex h-[48px] w-full shrink-0 items-start justify-center">
+                      <p className="line-clamp-2 text-center text-base leading-6 text-zinc-400">
+                        {item.premio?.nombre ?? "Campeón"}
+                      </p>
+                    </div>
 
-                  <div className="mt-8 border-t border-white/10 pt-5 text-center text-sm text-zinc-400">
-                    {item.evento.nombre}
+                    {/* LÍNEA Y LOGO */}
+                    <div className="mt-auto w-full">
+                      <div className="w-full border-t border-white/10" />
+
+                      <div className="flex h-[110px] items-center justify-center pt-4">
+                        {item.evento.logo ? (
+                          <img
+                            src={item.evento.logo}
+                            alt={`Logo ${item.evento.nombre}`}
+                            className="max-h-[90px] max-w-[220px] object-contain opacity-90 transition duration-300 group-hover:opacity-100"
+                          />
+                        ) : (
+                          <span className="text-sm text-zinc-500">
+                            {item.evento.nombre}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </a>
               );

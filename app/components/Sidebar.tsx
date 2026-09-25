@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -16,14 +15,33 @@ type Evento = {
 const enlacesPrincipales = [
   { nombre: "Inicio", href: "/", icono: "⌂" },
   { nombre: "Eventos", href: "/eventos", icono: "🎮" },
+  { nombre: "Calendario", href: "/calendario", icono: "📅" },
   { nombre: "Hall of Fame", href: "/hall-of-fame", icono: "🏆" },
   { nombre: "Amigxs", href: "/amigxs", icono: "👥" },
+  { nombre: "Galería", href: "/galeria", icono: "📸" },
 ];
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const [rutaActual, setRutaActual] = useState("");
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [menuAbierto, setMenuAbierto] = useState(false);
+
+  useEffect(() => {
+    setRutaActual(window.location.pathname);
+
+    function actualizarRuta() {
+      setRutaActual(window.location.pathname);
+    }
+
+    window.addEventListener("popstate", actualizarRuta);
+
+    return () => {
+      window.removeEventListener(
+        "popstate",
+        actualizarRuta
+      );
+    };
+  }, []);
 
   useEffect(() => {
     async function cargarEventos() {
@@ -33,7 +51,11 @@ export default function Sidebar() {
         .order("nombre");
 
       if (error) {
-        console.error("Error cargando eventos:", error);
+        console.error(
+          "Error cargando eventos:",
+          error
+        );
+
         return;
       }
 
@@ -44,19 +66,29 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuAbierto(false);
-  }, [pathname]);
+  }, [rutaActual]);
+
+  function navegar(href: string) {
+    setRutaActual(href);
+    setMenuAbierto(false);
+  }
 
   return (
     <>
       {/* SIDEBAR DESKTOP */}
       <aside className="fixed left-0 top-0 z-50 hidden h-screen w-72 flex-col border-r border-white/10 bg-black/80 backdrop-blur-xl lg:flex">
         <div className="border-b border-white/10 px-6 py-6">
-          <Link href="/" className="block">
+          <Link
+            href="/"
+            onClick={() => navegar("/")}
+            className="block"
+          >
             <p className="text-xs font-semibold tracking-[0.35em] text-zinc-500">
               THE
             </p>
+
             <h1 className="text-2xl font-black tracking-tight text-white">
               GAME ARCHIVE
             </h1>
@@ -72,13 +104,16 @@ export default function Sidebar() {
             {enlacesPrincipales.map((enlace) => {
               const activo =
                 enlace.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(enlace.href);
+                  ? rutaActual === "/"
+                  : rutaActual.startsWith(
+                      enlace.href
+                    );
 
               return (
                 <Link
                   key={enlace.href}
                   href={enlace.href}
+                  onClick={() => navegar(enlace.href)}
                   className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
                     activo
                       ? "bg-violet-600/20 text-white"
@@ -104,12 +139,15 @@ export default function Sidebar() {
           <div className="space-y-1">
             {eventos.map((evento) => {
               const href = `/eventos/${evento.slug}`;
-              const activo = pathname.startsWith(href);
+
+              const activo =
+                rutaActual.startsWith(href);
 
               return (
                 <Link
                   key={evento.id}
                   href={href}
+                  onClick={() => navegar(href)}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                     activo
                       ? "bg-violet-600/20 text-white"
@@ -131,7 +169,9 @@ export default function Sidebar() {
                     )}
                   </div>
 
-                  <span className="truncate">{evento.nombre}</span>
+                  <span className="truncate">
+                    {evento.nombre}
+                  </span>
                 </Link>
               );
             })}
@@ -139,7 +179,9 @@ export default function Sidebar() {
         </nav>
 
         <div className="border-t border-white/10 px-6 py-5">
-          <p className="text-xs text-zinc-600">Archivo histórico</p>
+          <p className="text-xs text-zinc-600">
+            Archivo histórico
+          </p>
 
           <p className="mt-1 text-xs text-zinc-500">
             Eventos · Personas · Historias
@@ -159,20 +201,18 @@ export default function Sidebar() {
       {/* MENÚ MÓVIL */}
       {menuAbierto && (
         <div className="fixed inset-0 z-[70] lg:hidden">
-          {/* FONDO */}
           <button
             onClick={() => setMenuAbierto(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             aria-label="Cerrar menú"
           />
 
-          {/* PANEL */}
           <aside className="relative h-full w-[85%] max-w-sm overflow-y-auto border-r border-white/10 bg-zinc-950 shadow-2xl">
             {/* CABECERA */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
               <Link
                 href="/"
-                onClick={() => setMenuAbierto(false)}
+                onClick={() => navegar("/")}
                 className="block"
               >
                 <p className="text-xs font-semibold tracking-[0.35em] text-zinc-500">
@@ -203,14 +243,18 @@ export default function Sidebar() {
                 {enlacesPrincipales.map((enlace) => {
                   const activo =
                     enlace.href === "/"
-                      ? pathname === "/"
-                      : pathname.startsWith(enlace.href);
+                      ? rutaActual === "/"
+                      : rutaActual.startsWith(
+                          enlace.href
+                        );
 
                   return (
                     <Link
                       key={enlace.href}
                       href={enlace.href}
-                      onClick={() => setMenuAbierto(false)}
+                      onClick={() =>
+                        navegar(enlace.href)
+                      }
                       className={`flex items-center gap-4 rounded-xl px-4 py-4 text-base font-medium transition ${
                         activo
                           ? "bg-violet-600/20 text-white"
@@ -236,13 +280,15 @@ export default function Sidebar() {
               <div className="space-y-1">
                 {eventos.map((evento) => {
                   const href = `/eventos/${evento.slug}`;
-                  const activo = pathname.startsWith(href);
+
+                  const activo =
+                    rutaActual.startsWith(href);
 
                   return (
                     <Link
                       key={evento.id}
                       href={href}
-                      onClick={() => setMenuAbierto(false)}
+                      onClick={() => navegar(href)}
                       className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition ${
                         activo
                           ? "bg-violet-600/20 text-white"
@@ -264,7 +310,9 @@ export default function Sidebar() {
                         )}
                       </div>
 
-                      <span className="truncate">{evento.nombre}</span>
+                      <span className="truncate">
+                        {evento.nombre}
+                      </span>
                     </Link>
                   );
                 })}
