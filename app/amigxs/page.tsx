@@ -161,19 +161,12 @@ function juegoPerteneceAPersona(
   persona: Persona
 ) {
   const juego = normalizarTexto(nombreJuego);
-
-  const nombreCompleto = normalizarTexto(
-    persona.nombre
-  );
-
+  const nombreCompleto = normalizarTexto(persona.nombre);
   const partesNombre = nombreCompleto.split(/\s+/);
-
   const primerNombre = partesNombre[0] ?? "";
-
   const apodo = persona.apodo
     ? normalizarTexto(persona.apodo)
     : "";
-
   const nombreVisible = normalizarTexto(
     nombreWeb(persona.nombre)
   );
@@ -224,12 +217,8 @@ export default function AmigxsPage() {
         supabase
           .from("participaciones")
           .select("persona_id, edicion_id, posicion"),
-        supabase
-          .from("ediciones")
-          .select("*"),
-        supabase
-          .from("eventos")
-          .select("id, nombre, slug"),
+        supabase.from("ediciones").select("*"),
+        supabase.from("eventos").select("id, nombre, slug"),
         supabase
           .from("juegos")
           .select("id, edicion_id, nombre")
@@ -281,9 +270,6 @@ export default function AmigxsPage() {
         ])
       );
 
-      /*
-       * HALL OF FAME
-       */
       const hallOfFameTemporal: Record<
         number,
         HallOfFame[]
@@ -335,21 +321,11 @@ export default function AmigxsPage() {
         }
       );
 
-      /*
-       * HISTORIAL DE PARTICIPACIONES
-       */
       const historialTemporal: Record<
         number,
         HistorialParticipacion[]
       > = {};
 
-      /*
-       * 1. EDICIONES CON COMPETENCIA
-       *
-       * Estas vienen directamente desde participaciones.
-       * Si posicion es NULL, igualmente se muestra como
-       * PARTICIPANTE.
-       */
       participaciones.forEach((participacion) => {
         const edicion = edicionPorId.get(
           participacion.edicion_id
@@ -392,15 +368,6 @@ export default function AmigxsPage() {
         }
       });
 
-      /*
-       * 2. EDICIONES SIN COMPETENCIA
-       *
-       * Expofest, por ejemplo, utiliza juegos como
-       * presentaciones. Cada juego representa a una persona.
-       *
-       * Si una edición NO tiene participaciones, buscamos
-       * las personas a través del nombre del juego.
-       */
       const edicionesConParticipaciones = new Set(
         participaciones.map(
           (participacion) => participacion.edicion_id
@@ -484,9 +451,6 @@ export default function AmigxsPage() {
         }
       );
 
-      /*
-       * ORDENAR HISTORIAL
-       */
       Object.keys(historialTemporal).forEach(
         (personaId) => {
           historialTemporal[Number(personaId)].sort(
@@ -496,12 +460,11 @@ export default function AmigxsPage() {
         }
       );
 
-      const personasOrdenadas = [
-        ...personas,
-      ].sort((a, b) =>
-        a.nombre.localeCompare(b.nombre, "es", {
-          sensitivity: "base",
-        })
+      const personasOrdenadas = [...personas].sort(
+        (a, b) =>
+          a.nombre.localeCompare(b.nombre, "es", {
+            sensitivity: "base",
+          })
       );
 
       setPersonas(personasOrdenadas);
@@ -717,7 +680,7 @@ export default function AmigxsPage() {
 
                         <div className="flex min-h-0 flex-1 flex-col p-6">
                           <h3 className="text-2xl font-black leading-tight text-white">
-                            {nombreWeb(amigx.nombre)}
+                            {amigx.nombre}
                           </h3>
 
                           {amigx.apodo && (
@@ -754,17 +717,21 @@ export default function AmigxsPage() {
                           )}
 
                           <div className="mt-5 flex flex-wrap gap-2">
-                            {premiosPersona.map(
-                              (premio) => (
-                                <span
-                                  key={`${premio.evento}-${premio.año}`}
-                                  className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-950/80 via-yellow-900/50 to-amber-950/80 px-3 py-1.5 text-xs font-black tracking-wide text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.08)]"
-                                >
-                                  🏆 Hall of Famer{" "}
-                                  {premio.año}
-                                </span>
-                              )
-                            )}
+                            {Array.from(
+                              new Map(
+                                premiosPersona.map((premio) => [
+                                  premio.año,
+                                  premio,
+                                ])
+                              ).values()
+                            ).map((premio) => (
+                              <span
+                                key={`hall-of-famer-${premio.año}`}
+                                className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-950/80 via-yellow-900/50 to-amber-950/80 px-3 py-1.5 text-xs font-black tracking-wide text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.08)]"
+                              >
+                                🏆 Hall of Famer {premio.año}
+                              </span>
+                            ))}
 
                             {amigx.etiquetas?.map(
                               (etiqueta) => (
@@ -851,9 +818,7 @@ export default function AmigxsPage() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={`Información de ${nombreWeb(
-              personaSeleccionada.nombre
-            )}`}
+            aria-label={`Información de ${personaSeleccionada.nombre}`}
             className="relative flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 shadow-2xl shadow-black/60 lg:flex-row"
           >
             {/* CERRAR */}
@@ -904,7 +869,7 @@ export default function AmigxsPage() {
               </p>
 
               <h2 className="mt-3 pr-10 text-4xl font-black leading-tight text-white md:text-5xl">
-                {nombreWeb(personaSeleccionada.nombre)}
+                {personaSeleccionada.nombre}
               </h2>
 
               {personaSeleccionada.apodo && (
@@ -976,16 +941,21 @@ export default function AmigxsPage() {
                   </p>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {hallOfFameSeleccionado.map(
-                      (premio) => (
-                        <span
-                          key={`${premio.evento}-${premio.año}`}
-                          className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-950/80 via-yellow-900/40 to-amber-950/80 px-4 py-2 text-sm font-black tracking-wide text-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.08)]"
-                        >
-                          🏆 Hall of Famer {premio.año}
-                        </span>
-                      )
-                    )}
+                    {Array.from(
+                      new Map(
+                        hallOfFameSeleccionado.map((premio) => [
+                          premio.año,
+                          premio,
+                        ])
+                      ).values()
+                    ).map((premio) => (
+                      <span
+                        key={`hall-of-famer-${premio.año}`}
+                        className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-950/80 via-yellow-900/40 to-amber-950/80 px-4 py-2 text-sm font-black tracking-wide text-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.08)]"
+                      >
+                        🏆 Hall of Famer {premio.año}
+                      </span>
+                    ))}
                   </div>
 
                   <div className="mt-5 space-y-2">

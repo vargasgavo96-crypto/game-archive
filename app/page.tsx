@@ -152,28 +152,98 @@ export default async function Home() {
     b.fecha.localeCompare(a.fecha)
   );
 
-  const ultimoEvento = edicionesOrdenadas[0];
+  const edicionesConCampeon = edicionesOrdenadas
+    .map((edicion) => {
+      const evento = eventoPorId.get(edicion.evento_id);
+      const premio = premioPorEdicion.get(edicion.id);
+      const participacionGanadora =
+        participacionGanadoraPorEdicion.get(edicion.id);
 
-  const hallOfFame = edicionesOrdenadas.slice(0, 3).map((edicion) => {
-    const evento = eventoPorId.get(edicion.evento_id);
-    const premio = premioPorEdicion.get(edicion.id);
+      const persona = premio
+        ? personaPorId.get(premio.persona_id)
+        : participacionGanadora
+          ? personaPorId.get(participacionGanadora.persona_id)
+          : undefined;
 
-    const participacionGanadora =
-      participacionGanadoraPorEdicion.get(edicion.id);
+      return {
+        edicion,
+        evento,
+        persona,
+        premio,
+      };
+    })
+    .filter((item) => item.evento && item.persona);
 
-    const persona = premio
-      ? personaPorId.get(premio.persona_id)
-      : participacionGanadora
-        ? personaPorId.get(participacionGanadora.persona_id)
-        : undefined;
+  const hallOfFame = edicionesConCampeon.slice(0, 3);
 
-    return {
-      edicion,
-      evento,
-      persona,
-      premio,
-    };
-  });
+  const ahora = new Date();
+  const añoActual = ahora.getFullYear();
+  const mesActual = ahora.getMonth();
+
+  const nombresMeses = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ];
+
+  const edicionesFuturas = [...listaEdiciones]
+    .filter(
+      (edicion) =>
+        new Date(`${edicion.fecha}T00:00:00`).getTime() >= ahora.getTime()
+    )
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  const edicionDelMes =
+    [...listaEdiciones]
+      .filter((edicion) => {
+        const fecha = new Date(`${edicion.fecha}T00:00:00`);
+
+        return (
+          fecha.getFullYear() === añoActual &&
+          fecha.getMonth() === mesActual
+        );
+      })
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))[0] ??
+    edicionesFuturas[0] ??
+    edicionesOrdenadas[0];
+
+  const eventoDelMes = edicionDelMes
+    ? eventoPorId.get(edicionDelMes.evento_id)
+    : undefined;
+
+  const campeonPorEvento = new Map<number, Persona>();
+
+  for (const evento of listaEventos) {
+    const edicionesDelEvento = edicionesOrdenadas.filter(
+      (edicion) => edicion.evento_id === evento.id
+    );
+
+    for (const edicion of edicionesDelEvento) {
+      const premio = premioPorEdicion.get(edicion.id);
+      const participacionGanadora =
+        participacionGanadoraPorEdicion.get(edicion.id);
+
+      const persona = premio
+        ? personaPorId.get(premio.persona_id)
+        : participacionGanadora
+          ? personaPorId.get(participacionGanadora.persona_id)
+          : undefined;
+
+      if (persona) {
+        campeonPorEvento.set(evento.id, persona);
+        break;
+      }
+    }
+  }
 
   return (
     <main
@@ -213,122 +283,48 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* LAST EVENT */}
-        {ultimoEvento && (
+        {/* EVENTO DEL MES */}
+        {edicionDelMes && eventoDelMes && (
           <section className="border-y border-white/10 bg-black/30">
             <div className="mx-auto max-w-7xl px-6 py-20">
               <div className="mb-10">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
-                  Último evento
+                  Evento del mes
                 </p>
 
                 <h2 className="mt-3 text-4xl font-bold md:text-5xl">
-                  {eventoPorId.get(ultimoEvento.evento_id)?.nombre}{" "}
-                  {ultimoEvento.año}
+                  {eventoDelMes.nombre} {edicionDelMes.año}
                 </h2>
               </div>
 
-              {(() => {
-                const evento = eventoPorId.get(ultimoEvento.evento_id);
-                const premio = premioPorEdicion.get(ultimoEvento.id);
+              <a
+                href={`/eventos/${eventoDelMes.slug}/${edicionDelMes.año}`}
+                className="group block overflow-hidden rounded-3xl border border-white/10 bg-black transition duration-300 hover:border-violet-500/60"
+              >
+                <div className="relative">
+                  <img
+                    src={`/presentaciones/${
+                      nombresMeses[
+                        Number(edicionDelMes.fecha.slice(5, 7)) - 1
+                      ]
+                    }banner.png`}
+                    alt={`${eventoDelMes.nombre} ${edicionDelMes.año}`}
+                    className="block h-auto w-full transition duration-500 group-hover:scale-[1.02]"
+                  />
 
-                const participacionGanadora =
-                  participacionGanadoraPorEdicion.get(ultimoEvento.id);
+                  <div className="pointer-events-none absolute inset-0 bg-black/10 transition duration-300 group-hover:bg-black/0" />
 
-                const persona = premio
-                  ? personaPorId.get(premio.persona_id)
-                  : participacionGanadora
-                    ? personaPorId.get(
-                        participacionGanadora.persona_id
-                      )
-                    : undefined;
+                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent px-8 pb-7 pt-20">
+                    <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/70">
+                      {eventoDelMes.nombre}
+                    </p>
 
-                return (
-                  <div className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-950/90 via-zinc-900/90 to-black/90">
-                    <div className="grid min-h-[420px] md:grid-cols-2">
-                      <div className="flex flex-col justify-center p-10 md:p-16">
-                        <p className="text-sm uppercase tracking-[0.25em] text-zinc-400">
-                          Campeonato {ultimoEvento.año}
-                        </p>
-
-                        <h3 className="mt-4 text-5xl font-black md:text-6xl">
-                          {evento?.nombre}
-                        </h3>
-
-                        <p className="mt-6 max-w-lg leading-7 text-zinc-300">
-                          Revive la historia del evento, sus desafíos,
-                          participantes y el campeonato que definió esta
-                          edición.
-                        </p>
-
-                        {persona && (
-                          <div className="mt-8 flex items-center gap-5">
-                            <span className="text-5xl">👑</span>
-
-                            <div>
-                              <p className="text-xs uppercase tracking-widest text-zinc-500">
-                                {premio?.nombre ?? "Campeón"}
-                              </p>
-
-                              <p className="text-2xl font-bold">
-                                {nombreCorto(persona.nombre)}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        <a
-                          href={`/eventos/${evento?.slug}/${ultimoEvento.año}`}
-                          className="mt-10 w-fit rounded-full border border-white/20 px-7 py-3 text-sm font-semibold transition hover:bg-white hover:text-black"
-                        >
-                          VER EVENTO →
-                        </a>
-                      </div>
-
-                      <div className="relative min-h-[420px] overflow-hidden bg-black">
-                        {premio?.imagen ? (
-                          <img
-                            src={premio.imagen}
-                            alt={
-                              persona
-                                ? nombreCorto(persona.nombre)
-                                : premio.nombre
-                            }
-                            className="absolute inset-0 h-full w-full object-cover"
-                          />
-                        ) : evento?.logo ? (
-                          <div className="flex h-full items-center justify-center">
-                            <img
-                              src={evento.logo}
-                              alt={`Logo ${evento.nombre}`}
-                              className="max-h-64 max-w-[70%] object-contain opacity-80"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-8xl">
-                            🏆
-                          </div>
-                        )}
-
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                        {persona && (
-                          <div className="absolute bottom-8 left-8">
-                            <p className="text-sm uppercase tracking-[0.4em] text-white/60">
-                              {premio?.nombre ?? "Campeón"}{" "}
-                              {ultimoEvento.año}
-                            </p>
-
-                            <p className="mt-2 text-2xl font-bold text-white">
-                              {nombreCorto(persona.nombre)}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <p className="mt-1 text-2xl font-black text-white md:text-3xl">
+                      Edición {edicionDelMes.año}
+                    </p>
                   </div>
-                );
-              })()}
+                </div>
+              </a>
             </div>
           </section>
         )}
@@ -367,12 +363,10 @@ export default async function Home() {
                       : "border-white/10"
                   }`}
                 >
-                  {/* POSICIÓN */}
                   <div className="absolute right-5 top-5 text-2xl text-zinc-700">
                     #{index + 1}
                   </div>
 
-                  {/* FOTO */}
                   <div className="flex h-[430px] shrink-0 items-center justify-center">
                     <div className="relative h-[300px] w-[300px] shrink-0 overflow-hidden rounded-full border-4 border-violet-500 bg-black shadow-lg shadow-violet-500/20">
                       {item.premio?.imagen ? (
@@ -397,30 +391,25 @@ export default async function Home() {
                     </div>
                   </div>
 
-                  {/* INFORMACIÓN */}
                   <div className="flex flex-1 flex-col items-center text-center">
-                    {/* AÑO */}
                     <div className="flex h-[32px] shrink-0 items-center justify-center">
                       <p className="text-sm uppercase tracking-[0.3em] text-violet-400">
                         {item.edicion.año}
                       </p>
                     </div>
 
-                    {/* NOMBRE - DOS LÍNEAS RESERVADAS */}
                     <div className="mt-3 flex h-[76px] w-full shrink-0 items-center justify-center">
                       <h3 className="line-clamp-2 max-w-full text-center text-3xl font-bold leading-tight">
                         {nombreCorto(item.persona.nombre)}
                       </h3>
                     </div>
 
-                    {/* TÍTULO */}
                     <div className="mt-2 flex h-[48px] w-full shrink-0 items-start justify-center">
                       <p className="line-clamp-2 text-center text-base leading-6 text-zinc-400">
                         {item.premio?.nombre ?? "Campeón"}
                       </p>
                     </div>
 
-                    {/* LÍNEA Y LOGO */}
                     <div className="mt-auto w-full">
                       <div className="w-full border-t border-white/10" />
 
@@ -482,27 +471,7 @@ export default async function Home() {
                   (edicion) => edicion.evento_id === evento.id
                 );
 
-                const ultimaEdicion = [...edicionesEvento].sort((a, b) =>
-                  b.fecha.localeCompare(a.fecha)
-                )[0];
-
-                const premio = ultimaEdicion
-                  ? premioPorEdicion.get(ultimaEdicion.id)
-                  : undefined;
-
-                const participacionGanadora = ultimaEdicion
-                  ? participacionGanadoraPorEdicion.get(
-                      ultimaEdicion.id
-                    )
-                  : undefined;
-
-                const ganador = premio
-                  ? personaPorId.get(premio.persona_id)
-                  : participacionGanadora
-                    ? personaPorId.get(
-                        participacionGanadora.persona_id
-                      )
-                    : undefined;
+                const ultimoCampeon = campeonPorEvento.get(evento.id);
 
                 return (
                   <a
@@ -547,9 +516,9 @@ export default async function Home() {
                       </p>
 
                       <p className="mt-1 font-semibold">
-                        {ganador
-                          ? nombreCorto(ganador.nombre)
-                          : "Por definir"}
+                        {ultimoCampeon
+                          ? nombreCorto(ultimoCampeon.nombre)
+                          : "Sin campeón registrado"}
                       </p>
                     </div>
 

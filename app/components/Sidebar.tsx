@@ -77,7 +77,12 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-6">
+        <nav
+          className="flex-1 overflow-y-auto px-4 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            msOverflowStyle: "none",
+          }}
+        >
           <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
             Navegación
           </p>
@@ -187,7 +192,12 @@ export default function Sidebar() {
             aria-label="Cerrar menú"
           />
 
-          <aside className="relative h-full w-[85%] max-w-sm overflow-y-auto border-r border-white/10 bg-zinc-950 shadow-2xl">
+          <aside
+            className="relative h-full w-[85%] max-w-sm overflow-y-auto border-r border-white/10 bg-zinc-950 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{
+              msOverflowStyle: "none",
+            }}
+          >
             {/* CABECERA */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
               <Link
