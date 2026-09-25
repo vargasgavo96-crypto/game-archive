@@ -30,8 +30,14 @@ type Participacion = {
   puntos_finales: number | null;
 };
 
-const IMAGEN_GANADOR = "/campeones/campeonhalloween2025.png";
-const ID_GANADOR = 4;
+type Premio = {
+  id: number;
+  persona_id: number;
+  edicion_id: number;
+  nombre: string;
+  descripcion: string | null;
+  imagen: string | null;
+};
 
 function nombreCorto(nombre: string) {
   const partes = nombre.trim().split(/\s+/);
@@ -48,39 +54,75 @@ function nombreWeb(nombre: string) {
 
   if (
     nombreNormalizado ===
-    "ángelo gabriel pérez oyarzo".toLowerCase()
+    "sebastián alejandro silva aguilera".toLowerCase()
   ) {
-    return "Ángelo Pérez";
+    return "Seba Silva";
+  }
+
+  if (
+    nombreNormalizado ===
+    "sebastián benjamín martínez wolf".toLowerCase()
+  ) {
+    return "Seba Martínez";
   }
 
   return nombreCorto(nombre);
 }
 
 function posicionTexto(posicion: number | null) {
-  if (posicion === 1) return "1° lugar";
-  if (posicion === 2) return "2° lugar";
-  if (posicion === 3) return "3° lugar";
+  if (posicion === null) {
+    return "Participante";
+  }
 
-  return "Participante";
+  if (posicion === 1) {
+    return "🥇 1° lugar";
+  }
+
+  if (posicion === 2) {
+    return "🥈 2° lugar";
+  }
+
+  if (posicion === 3) {
+    return "🥉 3° lugar";
+  }
+
+  return `${posicion}° lugar`;
 }
 
-function posicionEmoji(posicion: number | null) {
-  if (posicion === 1) return "🥇";
-  if (posicion === 2) return "🥈";
-  if (posicion === 3) return "🥉";
+function posicionColor(posicion: number | null) {
+  if (posicion === 1) {
+    return "border-amber-400/40 bg-amber-950/30 text-amber-300";
+  }
 
-  return "🎃";
+  if (posicion === 2) {
+    return "border-zinc-400/20 bg-zinc-800/40 text-zinc-300";
+  }
+
+  if (posicion === 3) {
+    return "border-orange-700/30 bg-orange-950/30 text-orange-300";
+  }
+
+  return "border-white/10 bg-white/[0.03] text-zinc-400";
 }
 
 export default async function Halloween2025Page() {
-  const { data: evento, error: eventoError } = await supabase
+  const {
+    data: eventoData,
+    error: eventoError,
+  } = await supabase
     .from("eventos")
-    .select("id, nombre, descripcion, logo, slug")
+    .select("*")
     .eq("slug", "halloween")
     .single();
 
+  const evento =
+    eventoData as unknown as Evento | null;
+
   if (eventoError || !evento) {
-    console.error("Error cargando Halloween:", eventoError);
+    console.error(
+      "Error cargando Halloween:",
+      eventoError
+    );
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
@@ -97,37 +139,62 @@ export default async function Halloween2025Page() {
     );
   }
 
-  const { data: edicion, error: edicionError } = await supabase
+  const {
+    data: edicionesData,
+    error: edicionesError,
+  } = await supabase
     .from("ediciones")
-    .select("id, evento_id, año, fecha")
-    .eq("evento_id", evento.id)
-    .eq("año", "2025")
-    .single();
+    .select("*")
+    .eq("evento_id", evento.id);
 
-  if (edicionError || !edicion) {
-    console.error("Error cargando edición:", edicionError);
+  const ediciones =
+    (edicionesData as unknown as Edicion[] | null) ??
+    [];
 
+  if (edicionesError) {
+    console.error(
+      "Error cargando ediciones de Halloween:",
+      edicionesError
+    );
+  }
+
+  const edicion = ediciones.find(
+    (item) => String(item.año) === "2025"
+  );
+
+  if (!edicion) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-400">
-            No se pudo cargar Halloween 2025
+            No se encontró Halloween 2025
           </h1>
 
           <p className="mt-3 text-zinc-400">
-            La edición todavía no está registrada.
+            Revisa que la edición 2025 exista en Supabase.
           </p>
         </div>
       </main>
     );
   }
 
-  const { data: participacionesData, error: participacionesError } =
-    await supabase
-      .from("participaciones")
-      .select("id, persona_id, edicion_id, posicion, puntos_finales")
-      .eq("edicion_id", edicion.id)
-      .order("posicion", { ascending: true, nullsFirst: false });
+  const edicionId = edicion.id;
+
+  const {
+    data: participacionesData,
+    error: participacionesError,
+  } = await supabase
+    .from("participaciones")
+    .select("*")
+    .eq("edicion_id", edicionId)
+    .order("posicion", {
+      ascending: true,
+      nullsFirst: false,
+    });
+
+  const participaciones =
+    (participacionesData as unknown as Participacion[] | null) ??
+    [];
 
   if (participacionesError) {
     console.error(
@@ -136,58 +203,65 @@ export default async function Halloween2025Page() {
     );
   }
 
-  const participaciones: Participacion[] =
-    participacionesData ?? [];
+  const {
+    data: personasData,
+    error: personasError,
+  } = await supabase
+    .from("personas")
+    .select("id, nombre, imagen");
 
-  const idsPersonas = Array.from(
-    new Set([
-      ID_GANADOR,
-      ...participaciones.map(
-        (participacion) => participacion.persona_id
-      ),
+  const personas =
+    (personasData as unknown as Persona[] | null) ??
+    [];
+
+  if (personasError) {
+    console.error(
+      "Error cargando personas:",
+      personasError
+    );
+  }
+
+  const {
+    data: premioData,
+    error: premioError,
+  } = await supabase
+    .from("premios")
+    .select("*")
+    .eq("edicion_id", edicionId)
+    .maybeSingle();
+
+  const premio =
+    premioData as unknown as Premio | null;
+
+  if (premioError) {
+    console.error(
+      "Error cargando premio:",
+      premioError
+    );
+  }
+
+  const personaPorId = new Map(
+    personas.map((persona) => [
+      persona.id,
+      persona,
     ])
   );
 
-  const { data: personasData, error: personasError } = await supabase
-    .from("personas")
-    .select("id, nombre, imagen")
-    .in("id", idsPersonas);
+  const participacionGanadora =
+    participaciones.find(
+      (participacion) =>
+        participacion.posicion === 1
+    );
 
-  if (personasError) {
-    console.error("Error cargando personas:", personasError);
-  }
+  const ganador = participacionGanadora
+    ? personaPorId.get(
+        participacionGanadora.persona_id
+      )
+    : premio
+      ? personaPorId.get(premio.persona_id)
+      : undefined;
 
-  const personas: Persona[] = personasData ?? [];
-
-  const personaPorId = new Map(
-    personas.map((persona) => [persona.id, persona])
-  );
-
-  const campeon =
-    personaPorId.get(ID_GANADOR) ??
-    ({
-      id: ID_GANADOR,
-      nombre: "Ángelo Pérez",
-      imagen: null,
-    } satisfies Persona);
-
-  const listaParticipaciones = [...participaciones];
-
-  if (
-    !listaParticipaciones.some(
-      (participacion) => participacion.persona_id === ID_GANADOR
-    )
-  ) {
-    listaParticipaciones.unshift({
-      id: -1,
-      persona_id: ID_GANADOR,
-      edicion_id: edicion.id,
-      posicion: 1,
-      puntos_finales: null,
-    });
-  }
-
-  const podio = listaParticipaciones
+  const podio = participaciones
     .filter(
       (participacion) =>
         participacion.posicion !== null &&
@@ -195,61 +269,64 @@ export default async function Halloween2025Page() {
     )
     .sort(
       (a, b) =>
-        (a.posicion ?? 99) - (b.posicion ?? 99)
+        (a.posicion ?? 99) -
+        (b.posicion ?? 99)
     );
 
-  const participantes = listaParticipaciones
-    .map((participacion) => ({
-      participacion,
-      persona: personaPorId.get(participacion.persona_id),
-    }))
-    .filter(
-      (
-        item
-      ): item is {
-        participacion: Participacion;
-        persona: Persona;
-      } => Boolean(item.persona)
-    );
+  const imagenGanador =
+    premio?.imagen ??
+    "/campeones/campeonhalloween2025.png";
+
+  const nombreGanador = ganador
+    ? nombreWeb(ganador.nombre)
+    : "Ángelo Pérez";
 
   return (
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
       style={{
-        backgroundImage: "url('/eventos/halloween.png')",
+        backgroundImage:
+          "url('/eventos/halloween.png')",
       }}
     >
       <div className="fixed inset-0 z-0 bg-black/65" />
 
       <div className="relative z-10">
-        {/* HERO / PORTADA */}
+        {/* HERO */}
         <section className="relative overflow-hidden border-b border-white/10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,92,0,0.25),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.25),_transparent_50%)]" />
 
-          <div className="relative mx-auto flex min-h-[700px] max-w-7xl flex-col items-center justify-center px-6 py-24 text-center">
-            {evento.logo && (
-              <img
-                src={evento.logo}
-                alt={evento.nombre}
-                className="max-h-[420px] max-w-2xl object-contain drop-shadow-[0_0_45px_rgba(255,100,0,0.3)]"
-              />
-            )}
+          <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-28 text-center">
+            <img
+              src={
+                evento.logo ??
+                "/logos/logohalloween.png"
+              }
+              alt="Halloween"
+              className="max-h-72 max-w-lg object-contain"
+            />
 
-            <p className="mt-10 text-sm font-semibold uppercase tracking-[0.4em] text-orange-400">
-              Edición 2025
+            <p className="mt-12 text-sm font-semibold uppercase tracking-[0.4em] text-orange-400">
+              Segunda edición
             </p>
 
-            <h1 className="mt-4 text-6xl font-black uppercase tracking-tight md:text-8xl">
+            <h1 className="mt-4 text-6xl font-black md:text-8xl">
               HALLOWEEN
             </h1>
 
             <p className="mt-4 text-3xl font-bold text-white/80">
               2025
             </p>
+
+            <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
+              Una nueva edición de nuestra celebración de
+              Halloween, con juegos, actividades y nuestro
+              tradicional torneo de disfraces.
+            </p>
           </div>
         </section>
 
-        {/* ¿CÓMO FUE ESTA EDICIÓN? */}
+        {/* INTRODUCCIÓN */}
         <section className="mx-auto max-w-4xl px-6 py-24 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
             La celebración
@@ -261,199 +338,309 @@ export default async function Halloween2025Page() {
 
           <div className="mt-8 space-y-6 text-lg leading-8 text-zinc-300">
             <p>
-              Halloween 2025 fue una nueva edición de nuestra
-              celebración de Halloween.
+              La segunda edición de Halloween continuó con la
+              tradición de reunirnos para celebrar esta fecha
+              junto a nuestros amigos.
             </p>
 
             <p>
-              Esta edición contó con actividades, juegos y un
-              torneo de disfraces para elegir al ganador.
+              La jornada estuvo acompañada de distintas
+              actividades y juegos, además del torneo de
+              disfraces que se convirtió nuevamente en uno de
+              los momentos principales de la celebración.
+            </p>
+
+            <p>
+              Esta edición quedó marcada por la creatividad de
+              los participantes y por la elección de un nuevo
+              campeón del torneo de disfraces.
             </p>
           </div>
         </section>
 
         {/* PARTICIPANTES */}
-        <section className="border-y border-white/10 bg-black/40">
+        <section className="border-y border-white/10 bg-black/30">
           <div className="mx-auto max-w-7xl px-6 py-24">
             <div className="text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-                La competencia
+                Los protagonistas
               </p>
 
               <h2 className="mt-4 text-5xl font-black md:text-6xl">
                 PARTICIPANTES
               </h2>
 
-              <p className="mx-auto mt-5 max-w-2xl text-zinc-300">
-                Quienes formaron parte de Halloween 2025.
+              <p className="mx-auto mt-5 max-w-xl text-zinc-400">
+                Las personas que fueron parte de Halloween
+                2025.
               </p>
             </div>
 
-            {participantes.length === 0 ? (
-              <div className="mx-auto mt-14 max-w-xl rounded-3xl border border-white/10 bg-zinc-900/80 p-10 text-center">
-                <p className="text-zinc-400">
-                  Todavía no hay participantes registrados.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {participantes.map(
-                  ({ participacion, persona }) => (
-                    <div
-                      key={participacion.id}
-                      className="group rounded-3xl border border-white/10 bg-zinc-900/90 p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/40"
-                    >
-                      <div className="flex items-center gap-5">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black">
+            {participaciones.length > 0 ? (
+              <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {participaciones.map(
+                  (participacion) => {
+                    const persona =
+                      personaPorId.get(
+                        participacion.persona_id
+                      );
+
+                    if (!persona) {
+                      return null;
+                    }
+
+                    return (
+                      <div
+                        key={participacion.id}
+                        className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-1 hover:border-orange-500/30"
+                      >
+                        <div className="relative h-72 overflow-hidden bg-black">
                           {persona.imagen ? (
                             <img
                               src={persona.imagen}
-                              alt={nombreWeb(persona.nombre)}
-                              className="h-full w-full object-cover"
+                              alt={nombreWeb(
+                                persona.nombre
+                              )}
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                             />
                           ) : (
-                            <span className="text-2xl">
-                              🎃
-                            </span>
+                            <div className="flex h-full items-center justify-center">
+                              <span className="text-7xl opacity-20">
+                                👤
+                              </span>
+                            </div>
                           )}
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                         </div>
 
-                        <div className="min-w-0">
-                          <p className="truncate text-lg font-bold text-white">
-                            {nombreWeb(persona.nombre)}
-                          </p>
-
-                          <p className="mt-1 text-sm text-zinc-500">
-                            {posicionTexto(
-                              participacion.posicion
+                        <div className="p-6">
+                          <h3 className="text-2xl font-black">
+                            {nombreWeb(
+                              persona.nombre
                             )}
-                          </p>
+                          </h3>
+
+                          <div className="mt-4">
+                            <span
+                              className={`inline-flex rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${posicionColor(
+                                participacion.posicion
+                              )}`}
+                            >
+                              {posicionTexto(
+                                participacion.posicion
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )
+                    );
+                  }
                 )}
+              </div>
+            ) : (
+              <div className="mt-14 rounded-3xl border border-dashed border-white/10 bg-zinc-900/70 p-16 text-center">
+                <p className="text-sm text-zinc-600">
+                  Participantes próximamente.
+                </p>
               </div>
             )}
           </div>
         </section>
 
+        {/* TORNEO DE DISFRACES */}
+        <section className="border-b border-white/10 bg-black/40">
+          <div className="mx-auto max-w-6xl px-6 py-28">
+            <div className="grid items-center gap-12 md:grid-cols-2">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                  La gran competencia
+                </p>
+
+                <h2 className="mt-4 text-4xl font-black md:text-6xl">
+                  TORNEO DE
+                  <br />
+                  DISFRACES
+                </h2>
+
+                <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-300">
+                  El torneo de disfraces volvió a ser una de
+                  las actividades principales de Halloween,
+                  reuniendo creatividad, preparación y
+                  diferentes propuestas para conseguir el
+                  título.
+                </p>
+              </div>
+
+              <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-black/60 p-10">
+                <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl" />
+
+                <div className="relative text-center">
+                  <p className="text-7xl">🎃</p>
+
+                  <p className="mt-6 text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                    Halloween 2025
+                  </p>
+
+                  <h3 className="mt-3 text-3xl font-black">
+                    MEJOR DISFRAZ
+                  </h3>
+
+                  <p className="mt-4 text-zinc-400">
+                    La competencia que definió al nuevo
+                    campeón de Halloween.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* PODIO */}
-        <section className="mx-auto max-w-6xl px-6 py-24">
+        <section className="mx-auto max-w-6xl px-6 py-28">
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-              Resultados
+              Resultado
             </p>
 
             <h2 className="mt-4 text-5xl font-black md:text-6xl">
-              PODIO
+              EL PODIO
             </h2>
+
+            <p className="mx-auto mt-5 max-w-xl text-zinc-400">
+              Así terminó el torneo de disfraces de Halloween
+              2025.
+            </p>
           </div>
 
-          {podio.length === 0 ? (
-            <div className="mx-auto mt-14 max-w-xl rounded-3xl border border-white/10 bg-zinc-900/80 p-10 text-center">
-              <p className="text-zinc-400">
-                El podio todavía no está registrado.
-              </p>
-            </div>
-          ) : (
+          {podio.length > 0 ? (
             <div className="mt-14 grid gap-6 md:grid-cols-3">
               {podio.map((participacion) => {
-                const persona = personaPorId.get(
-                  participacion.persona_id
-                );
+                const jugador =
+                  personaPorId.get(
+                    participacion.persona_id
+                  );
 
-                if (!persona) return null;
+                if (!jugador) {
+                  return null;
+                }
+
+                const posicion =
+                  participacion.posicion;
 
                 return (
                   <div
                     key={participacion.id}
-                    className={`relative overflow-hidden rounded-3xl border p-8 text-center ${
-                      participacion.posicion === 1
-                        ? "border-orange-500/50 bg-orange-950/30 md:-translate-y-4"
+                    className={`rounded-3xl border p-8 text-center transition duration-300 hover:-translate-y-2 ${
+                      posicion === 1
+                        ? "border-orange-500/50 bg-orange-950/30"
                         : "border-white/10 bg-zinc-900/90"
                     }`}
                   >
-                    <div className="text-5xl">
-                      {posicionEmoji(
-                        participacion.posicion
-                      )}
+                    <div className="text-6xl">
+                      {posicion === 1
+                        ? "🥇"
+                        : posicion === 2
+                          ? "🥈"
+                          : "🥉"}
                     </div>
 
-                    <p className="mt-5 text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-                      {posicionTexto(
-                        participacion.posicion
-                      )}
+                    <p className="mt-10 text-sm uppercase tracking-[0.3em] text-orange-400">
+                      {posicion}° lugar
                     </p>
 
-                    <h3 className="mt-3 text-2xl font-black">
-                      {nombreWeb(persona.nombre)}
+                    <h3 className="mt-6 text-3xl font-black">
+                      {nombreWeb(
+                        jugador.nombre
+                      )}
                     </h3>
-
-                    {participacion.puntos_finales !== null && (
-                      <p className="mt-3 text-sm text-zinc-500">
-                        {participacion.puntos_finales} puntos
-                      </p>
-                    )}
                   </div>
                 );
               })}
             </div>
+          ) : (
+            <div className="mt-14 grid gap-6 md:grid-cols-3">
+              {[1, 2, 3].map((posicion) => (
+                <div
+                  key={posicion}
+                  className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-white/10 bg-zinc-900/70"
+                >
+                  <div className="text-center">
+                    <p className="text-5xl">
+                      {posicion === 1
+                        ? "🥇"
+                        : posicion === 2
+                          ? "🥈"
+                          : "🥉"}
+                    </p>
+
+                    <p className="mt-5 text-sm uppercase tracking-[0.3em] text-zinc-600">
+                      {posicion}° lugar
+                    </p>
+
+                    <p className="mt-2 text-sm text-zinc-700">
+                      Próximamente
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </section>
 
-        {/* GANADOR */}
-        <section className="border-y border-orange-500/20 bg-black/40">
-          <div className="mx-auto max-w-7xl px-6 py-24">
-            <div className="mb-12 text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.4em] text-orange-400">
-                El gran ganador
-              </p>
-
-              <h2 className="mt-4 text-5xl font-black md:text-6xl">
-                GANADOR
-              </h2>
-            </div>
-
-            <div className="relative mx-auto min-h-[620px] max-w-7xl overflow-hidden rounded-[2rem] border border-orange-500/30 bg-black/75 shadow-[0_0_80px_rgba(255,100,0,0.12)]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,_rgba(255,100,0,0.12),_transparent_45%)]" />
-
-              <div className="relative grid min-h-[620px] md:grid-cols-[0.9fr_1.1fr]">
-                <div className="relative z-10 flex flex-col justify-center px-10 py-14 text-center md:px-14 md:text-left lg:px-20">
-                  <p className="text-sm font-semibold uppercase tracking-[0.4em] text-orange-400">
-                    🏆 Campeón
+        {/* CAMPEÓN */}
+        <section className="border-y border-white/10 bg-black/50">
+          <div className="mx-auto max-w-6xl px-6 py-28">
+            <div className="overflow-hidden rounded-3xl border border-orange-500/20 bg-zinc-950">
+              <div className="grid min-h-[620px] md:grid-cols-2">
+                <div className="flex flex-col justify-center p-10 text-center md:p-14">
+                  <p className="text-sm uppercase tracking-[0.3em] text-orange-400">
+                    Campeón
                   </p>
 
-                  <h3 className="mt-5 text-5xl font-black leading-none text-white md:text-6xl lg:text-7xl">
-                    Ángelo
-                    <br />
-                    Pérez
-                  </h3>
+                  <h2 className="mt-4 text-5xl font-black md:text-6xl">
+                    {nombreGanador}
+                  </h2>
 
-                  <div className="mt-8 h-px w-24 bg-orange-500/60" />
-
-                  <p className="mt-8 text-2xl font-semibold text-zinc-200">
-                    Mejor Disfraz
+                  <p className="mt-6 text-xl font-semibold text-orange-300">
+                    {premio?.nombre ??
+                      "Mejor Disfraz Halloween 2025"}
                   </p>
 
-                  <p className="mt-1 text-2xl font-semibold text-orange-400">
-                    Halloween 2025
-                  </p>
+                  {premio?.descripcion && (
+                    <p className="mt-6 text-lg leading-8 text-zinc-300">
+                      {premio.descripcion}
+                    </p>
+                  )}
 
-                  <p className="mt-6 max-w-md text-base leading-7 text-zinc-400">
-                    Ganador del torneo de disfraces de Halloween
+                  <div className="mt-8 flex justify-center">
+                    <span className="text-7xl">
+                      👑
+                    </span>
+                  </div>
+
+                  <p className="mt-8 text-lg leading-8 text-zinc-400">
+                    Ángelo Pérez se convirtió en el campeón
+                    del torneo de disfraces de Halloween
                     2025.
                   </p>
+
+                  <a
+                    href="/eventos/halloween"
+                    className="mx-auto mt-8 w-fit rounded-full border border-white/20 px-7 py-3 text-sm font-semibold transition hover:bg-white hover:text-black"
+                  >
+                    VOLVER AL EVENTO →
+                  </a>
                 </div>
 
-                <div className="relative flex min-h-[500px] items-end justify-center overflow-hidden md:min-h-[620px] md:items-center">
+                <div className="relative min-h-[620px] overflow-hidden bg-black">
                   <img
-                    src={IMAGEN_GANADOR}
-                    alt="Ángelo Pérez - Ganador Halloween 2025"
-                    className="h-full max-h-[620px] w-full object-contain object-center"
+                    src={imagenGanador}
+                    alt={nombreGanador}
+                    className="absolute inset-0 h-full w-full object-contain"
                   />
 
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent md:from-black md:via-black/10 md:to-transparent" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />
                 </div>
               </div>
             </div>
@@ -471,15 +658,26 @@ export default async function Halloween2025Page() {
               GALERÍA
             </h2>
 
-            <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
+            <p className="mx-auto mt-5 max-w-xl text-zinc-400">
               Fotografías de Halloween 2025.
             </p>
           </div>
 
           <div className="mt-14">
-            <GaleriaFotos edicionId={edicion.id} />
+            <GaleriaFotos edicionId={edicionId} />
           </div>
         </section>
+
+        {/* FOOTER */}
+        <footer className="border-t border-white/10 bg-black/50 px-6 py-10">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-zinc-500 md:flex-row md:items-center md:justify-between">
+            <p>THE GAME ARCHIVE</p>
+
+            <p>
+              Halloween · Segunda edición · 2025
+            </p>
+          </div>
+        </footer>
       </div>
     </main>
   );

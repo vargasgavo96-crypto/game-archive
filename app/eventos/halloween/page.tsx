@@ -41,14 +41,18 @@ function nombreCorto(nombre: string) {
 }
 
 export default async function HalloweenPage() {
-  const { data: evento, error: eventoError } = await supabase
-    .from("eventos")
-    .select("id, nombre, descripcion, logo, slug")
-    .eq("slug", "halloween")
-    .single();
+  const { data: evento, error: eventoError } =
+    await supabase
+      .from("eventos")
+      .select("id, nombre, descripcion, logo, slug")
+      .eq("slug", "halloween")
+      .single();
 
   if (eventoError || !evento) {
-    console.error("Error cargando evento:", eventoError);
+    console.error(
+      "Error cargando evento:",
+      eventoError
+    );
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
@@ -65,29 +69,45 @@ export default async function HalloweenPage() {
     );
   }
 
-  const { data: edicionesData, error: edicionesError } = await supabase
+  const {
+    data: edicionesData,
+    error: edicionesError,
+  } = await supabase
     .from("ediciones")
-    .select("id, evento_id, año, fecha")
+    .select("*")
     .eq("evento_id", evento.id)
-    .order("fecha", { ascending: false });
+    .order("fecha", {
+      ascending: false,
+    });
 
   if (edicionesError) {
-    console.error("Error cargando ediciones:", edicionesError);
+    console.error(
+      "Error cargando ediciones:",
+      edicionesError
+    );
   }
 
-  const ediciones: Edicion[] = edicionesData ?? [];
+  const ediciones =
+    (edicionesData as unknown as Edicion[] | null) ??
+    [];
 
-  const idsEdiciones = ediciones.map((edicion) => edicion.id);
+  const idsEdiciones = ediciones.map(
+    (edicion) => edicion.id
+  );
 
   let participaciones: Participacion[] = [];
 
   if (idsEdiciones.length > 0) {
-    const { data: participacionesData, error: participacionesError } =
-      await supabase
-        .from("participaciones")
-        .select("edicion_id, persona_id, posicion")
-        .in("edicion_id", idsEdiciones)
-        .eq("posicion", 1);
+    const {
+      data: participacionesData,
+      error: participacionesError,
+    } = await supabase
+      .from("participaciones")
+      .select(
+        "edicion_id, persona_id, posicion"
+      )
+      .in("edicion_id", idsEdiciones)
+      .eq("posicion", 1);
 
     if (participacionesError) {
       console.error(
@@ -96,13 +116,16 @@ export default async function HalloweenPage() {
       );
     }
 
-    participaciones = participacionesData ?? [];
+    participaciones =
+      (participacionesData as unknown as Participacion[] | null) ??
+      [];
   }
 
   const idsPersonas = Array.from(
     new Set(
       participaciones.map(
-        (participacion) => participacion.persona_id
+        (participacion) =>
+          participacion.persona_id
       )
     )
   );
@@ -110,11 +133,13 @@ export default async function HalloweenPage() {
   let personas: Persona[] = [];
 
   if (idsPersonas.length > 0) {
-    const { data: personasData, error: personasError } =
-      await supabase
-        .from("personas")
-        .select("id, nombre")
-        .in("id", idsPersonas);
+    const {
+      data: personasData,
+      error: personasError,
+    } = await supabase
+      .from("personas")
+      .select("id, nombre")
+      .in("id", idsPersonas);
 
     if (personasError) {
       console.error(
@@ -123,25 +148,35 @@ export default async function HalloweenPage() {
       );
     }
 
-    personas = personasData ?? [];
+    personas =
+      (personasData as unknown as Persona[] | null) ??
+      [];
   }
 
   const personaPorId = new Map(
-    personas.map((persona) => [persona.id, persona])
+    personas.map((persona) => [
+      persona.id,
+      persona,
+    ])
   );
 
   const ganadorPorEdicion = new Map(
-    participaciones.map((participacion) => [
-      participacion.edicion_id,
-      personaPorId.get(participacion.persona_id),
-    ])
+    participaciones.map(
+      (participacion) => [
+        participacion.edicion_id,
+        personaPorId.get(
+          participacion.persona_id
+        ),
+      ]
+    )
   );
 
   return (
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
       style={{
-        backgroundImage: "url('/eventos/halloween.png')",
+        backgroundImage:
+          "url('/eventos/halloween.png')",
       }}
     >
       <div className="fixed inset-0 z-0 bg-black/65" />
@@ -255,7 +290,9 @@ export default async function HalloweenPage() {
                 <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl" />
 
                 <div className="relative text-center">
-                  <p className="text-7xl">🎃</p>
+                  <p className="text-7xl">
+                    🎃
+                  </p>
 
                   <p className="mt-6 text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
                     Halloween
@@ -294,7 +331,9 @@ export default async function HalloweenPage() {
 
           {ediciones.length === 0 ? (
             <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-white/10 bg-black/40 px-8 py-16 text-center backdrop-blur-sm">
-              <p className="text-5xl">👻</p>
+              <p className="text-5xl">
+                👻
+              </p>
 
               <h3 className="mt-6 text-2xl font-bold text-white">
                 Próximamente
@@ -307,8 +346,15 @@ export default async function HalloweenPage() {
           ) : (
             <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {ediciones.map((edicion) => {
-                const ganador = ganadorPorEdicion.get(edicion.id);
-                const imagenGanador = imagenesGanadores[edicion.año];
+                const ganador =
+                  ganadorPorEdicion.get(
+                    edicion.id
+                  );
+
+                const imagenGanador =
+                  imagenesGanadores[
+                    String(edicion.año)
+                  ];
 
                 return (
                   <a
@@ -324,7 +370,9 @@ export default async function HalloweenPage() {
                         }
                         alt={
                           ganador
-                            ? nombreCorto(ganador.nombre)
+                            ? nombreCorto(
+                                ganador.nombre
+                              )
                             : `Halloween ${edicion.año}`
                         }
                         className={
@@ -354,7 +402,9 @@ export default async function HalloweenPage() {
 
                       <p className="mt-1 text-lg font-bold text-white">
                         {ganador
-                          ? nombreCorto(ganador.nombre)
+                          ? nombreCorto(
+                              ganador.nombre
+                            )
                           : "Por definir"}
                       </p>
 
@@ -378,9 +428,13 @@ export default async function HalloweenPage() {
         {/* FOOTER */}
         <footer className="border-t border-white/10 bg-black/50 px-6 py-10">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-zinc-500 md:flex-row md:items-center md:justify-between">
-            <p>THE GAME ARCHIVE</p>
+            <p>
+              THE GAME ARCHIVE
+            </p>
 
-            <p>Halloween · Juegos · Disfraces</p>
+            <p>
+              Halloween · Juegos · Disfraces
+            </p>
           </div>
         </footer>
       </div>

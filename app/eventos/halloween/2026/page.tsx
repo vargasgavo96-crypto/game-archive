@@ -99,15 +99,26 @@ export default async function Halloween2026Page() {
     );
   }
 
-  const { data: edicion, error: edicionError } = await supabase
+  const {
+    data: edicionesData,
+    error: edicionesError,
+  } = await supabase
     .from("ediciones")
-    .select("id, evento_id, año, fecha")
-    .eq("evento_id", evento.id)
-    .eq("año", "2026")
-    .single();
+    .select("*")
+    .eq("evento_id", evento.id);
 
-  if (edicionError || !edicion) {
-    console.error("Error cargando edición:", edicionError);
+  const ediciones =
+    (edicionesData as unknown as Edicion[] | null) ?? [];
+
+  const edicion = ediciones.find(
+    (item) => String(item.año) === "2026"
+  );
+
+  if (edicionesError || !edicion) {
+    console.error(
+      "Error cargando edición:",
+      edicionesError
+    );
 
     return (
       <main
@@ -133,6 +144,8 @@ export default async function Halloween2026Page() {
     );
   }
 
+  const edicionId = edicion.id;
+
   const [
     { data: participacionesData, error: participacionesError },
     { data: personasData, error: personasError },
@@ -142,8 +155,11 @@ export default async function Halloween2026Page() {
       .select(
         "id, persona_id, edicion_id, posicion, puntos_finales"
       )
-      .eq("edicion_id", edicion.id)
-      .order("posicion", { ascending: true, nullsFirst: false }),
+      .eq("edicion_id", edicionId)
+      .order("posicion", {
+        ascending: true,
+        nullsFirst: false,
+      }),
     supabase
       .from("personas")
       .select("id, nombre, imagen")
@@ -158,13 +174,17 @@ export default async function Halloween2026Page() {
   }
 
   if (personasError) {
-    console.error("Error cargando personas:", personasError);
+    console.error(
+      "Error cargando personas:",
+      personasError
+    );
   }
 
   const participaciones: Participacion[] =
-    participacionesData ?? [];
+    (participacionesData as unknown as Participacion[] | null) ?? [];
 
-  const personas: Persona[] = personasData ?? [];
+  const personas: Persona[] =
+    (personasData as unknown as Persona[] | null) ?? [];
 
   const personaPorId = new Map(
     personas.map((persona) => [persona.id, persona])
@@ -174,7 +194,9 @@ export default async function Halloween2026Page() {
     .map((participacion) =>
       personaPorId.get(participacion.persona_id)
     )
-    .filter((persona): persona is Persona => Boolean(persona));
+    .filter(
+      (persona): persona is Persona => Boolean(persona)
+    );
 
   const podio = participaciones
     .filter(
@@ -184,7 +206,8 @@ export default async function Halloween2026Page() {
     )
     .sort(
       (a, b) =>
-        (a.posicion ?? 99) - (b.posicion ?? 99)
+        (a.posicion ?? 99) -
+        (b.posicion ?? 99)
     );
 
   const participacionGanadora = participaciones.find(
@@ -192,7 +215,9 @@ export default async function Halloween2026Page() {
   );
 
   const ganador = participacionGanadora
-    ? personaPorId.get(participacionGanadora.persona_id)
+    ? personaPorId.get(
+        participacionGanadora.persona_id
+      )
     : undefined;
 
   return (
@@ -543,7 +568,7 @@ export default async function Halloween2026Page() {
         </section>
 
         {/* GALERÍA */}
-        <GaleriaFotos edicionId={edicion.id} />
+        <GaleriaFotos edicionId={edicionId} />
 
         {/* FOOTER */}
         <footer className="border-t border-white/10 bg-black/50 px-6 py-10">

@@ -82,15 +82,26 @@ export default async function Halloween2024Page() {
     );
   }
 
-  const { data: edicion, error: edicionError } = await supabase
+  const {
+    data: edicionesData,
+    error: edicionesError,
+  } = await supabase
     .from("ediciones")
     .select("*")
-    .eq("evento_id", evento.id)
-    .eq("año", "2024")
-    .single();
+    .eq("evento_id", evento.id);
 
-  if (edicionError || !edicion) {
-    console.error("Error cargando edición:", edicionError);
+  const ediciones =
+    (edicionesData as unknown as Edicion[] | null) ?? [];
+
+  const edicion = ediciones.find(
+    (item) => String(item.año) === "2024"
+  );
+
+  if (edicionesError || !edicion) {
+    console.error(
+      "Error cargando edición:",
+      edicionesError
+    );
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
@@ -107,12 +118,21 @@ export default async function Halloween2024Page() {
     );
   }
 
-  const { data: participacionesData, error: participacionesError } =
-    await supabase
-      .from("participaciones")
-      .select("id, persona_id, edicion_id, posicion, puntos_finales")
-      .eq("edicion_id", edicion.id)
-      .order("posicion", { ascending: true, nullsFirst: false });
+  const edicionId = edicion.id;
+
+  const {
+    data: participacionesData,
+    error: participacionesError,
+  } = await supabase
+    .from("participaciones")
+    .select(
+      "id, persona_id, edicion_id, posicion, puntos_finales"
+    )
+    .eq("edicion_id", edicionId)
+    .order("posicion", {
+      ascending: true,
+      nullsFirst: false,
+    });
 
   if (participacionesError) {
     console.error(
@@ -121,7 +141,9 @@ export default async function Halloween2024Page() {
     );
   }
 
-  const participaciones: Participacion[] = participacionesData ?? [];
+  const participaciones =
+    (participacionesData as unknown as Participacion[] | null) ??
+    [];
 
   const personaIds = participaciones.map(
     (participacion) => participacion.persona_id
@@ -130,40 +152,62 @@ export default async function Halloween2024Page() {
   let personas: Persona[] = [];
 
   if (personaIds.length > 0) {
-    const { data: personasData, error: personasError } = await supabase
+    const {
+      data: personasData,
+      error: personasError,
+    } = await supabase
       .from("personas")
       .select("id, nombre, imagen")
       .in("id", personaIds);
 
     if (personasError) {
-      console.error("Error cargando personas:", personasError);
+      console.error(
+        "Error cargando personas:",
+        personasError
+      );
     }
 
-    personas = personasData ?? [];
+    personas =
+      (personasData as unknown as Persona[] | null) ?? [];
   }
 
   const personaPorId = new Map(
-    personas.map((persona) => [persona.id, persona])
+    personas.map((persona) => [
+      persona.id,
+      persona,
+    ])
   );
 
-  const { data: premio, error: premioError } = await supabase
+  const {
+    data: premioData,
+    error: premioError,
+  } = await supabase
     .from("premios")
     .select(
       "id, persona_id, edicion_id, nombre, descripcion, imagen"
     )
-    .eq("edicion_id", edicion.id)
+    .eq("edicion_id", edicionId)
     .maybeSingle();
 
+  const premio =
+    (premioData as unknown as Premio | null) ?? null;
+
   if (premioError) {
-    console.error("Error cargando premio:", premioError);
+    console.error(
+      "Error cargando premio:",
+      premioError
+    );
   }
 
-  const participacionGanadora = participaciones.find(
-    (participacion) => participacion.posicion === 1
-  );
+  const participacionGanadora =
+    participaciones.find(
+      (participacion) =>
+        participacion.posicion === 1
+    );
 
   const ganadorId =
-    premio?.persona_id ?? participacionGanadora?.persona_id;
+    premio?.persona_id ??
+    participacionGanadora?.persona_id;
 
   const ganador = ganadorId
     ? personaPorId.get(ganadorId)
@@ -181,7 +225,8 @@ export default async function Halloween2024Page() {
     )
     .sort(
       (a, b) =>
-        (a.posicion ?? 99) - (b.posicion ?? 99)
+        (a.posicion ?? 99) -
+        (b.posicion ?? 99)
     );
 
   const imagenGanador =
@@ -193,7 +238,8 @@ export default async function Halloween2024Page() {
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
       style={{
-        backgroundImage: "url('/eventos/halloween.png')",
+        backgroundImage:
+          "url('/eventos/halloween.png')",
       }}
     >
       <div className="fixed inset-0 z-0 bg-black/65" />
@@ -205,7 +251,10 @@ export default async function Halloween2024Page() {
 
           <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-28 text-center">
             <img
-              src={evento.logo ?? "/logos/logohalloween.png"}
+              src={
+                evento.logo ??
+                "/logos/logohalloween.png"
+              }
               alt="Halloween"
               className="max-h-72 max-w-lg object-contain drop-shadow-[0_0_35px_rgba(255,120,0,0.35)]"
             />
@@ -280,48 +329,58 @@ export default async function Halloween2024Page() {
               </div>
             ) : (
               <div className="mt-14 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {participaciones.map((participacion) => {
-                  const persona = personaPorId.get(
-                    participacion.persona_id
-                  );
+                {participaciones.map(
+                  (participacion) => {
+                    const persona =
+                      personaPorId.get(
+                        participacion.persona_id
+                      );
 
-                  if (!persona) return null;
+                    if (!persona) return null;
 
-                  return (
-                    <div
-                      key={participacion.id}
-                      className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-orange-500/40"
-                    >
-                      <div className="relative h-64 overflow-hidden bg-black">
-                        {persona.imagen ? (
-                          <img
-                            src={persona.imagen}
-                            alt={nombreCorto(persona.nombre)}
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-6xl">
-                            🎃
-                          </div>
-                        )}
+                    return (
+                      <div
+                        key={participacion.id}
+                        className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-orange-500/40"
+                      >
+                        <div className="relative h-64 overflow-hidden bg-black">
+                          {persona.imagen ? (
+                            <img
+                              src={persona.imagen}
+                              alt={nombreCorto(
+                                persona.nombre
+                              )}
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-6xl">
+                              🎃
+                            </div>
+                          )}
 
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                        </div>
+
+                        <div className="p-6">
+                          <h3 className="text-2xl font-black">
+                            {nombreCorto(
+                              persona.nombre
+                            )}
+                          </h3>
+
+                          {participacion.posicion !==
+                            null && (
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-orange-400">
+                              {posicionTexto(
+                                participacion.posicion
+                              )}
+                            </p>
+                          )}
+                        </div>
                       </div>
-
-                      <div className="p-6">
-                        <h3 className="text-2xl font-black">
-                          {nombreCorto(persona.nombre)}
-                        </h3>
-
-                        {participacion.posicion !== null && (
-                          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-orange-400">
-                            {posicionTexto(participacion.posicion)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
               </div>
             )}
           </div>
@@ -350,13 +409,15 @@ export default async function Halloween2024Page() {
           ) : (
             <div className="mt-16 grid items-end gap-6 md:grid-cols-3">
               {podio.map((participacion) => {
-                const persona = personaPorId.get(
-                  participacion.persona_id
-                );
+                const persona =
+                  personaPorId.get(
+                    participacion.persona_id
+                  );
 
                 if (!persona) return null;
 
-                const posicion = participacion.posicion ?? 0;
+                const posicion =
+                  participacion.posicion ?? 0;
 
                 const altura =
                   posicion === 1
@@ -389,10 +450,13 @@ export default async function Halloween2024Page() {
                       </p>
 
                       <h3 className="mt-4 text-4xl font-black">
-                        {nombreCorto(persona.nombre)}
+                        {nombreCorto(
+                          persona.nombre
+                        )}
                       </h3>
 
-                      {participacion.puntos_finales !== null && (
+                      {participacion.puntos_finales !==
+                        null && (
                         <p className="mt-4 text-zinc-400">
                           {participacion.puntos_finales} puntos
                         </p>
@@ -432,7 +496,9 @@ export default async function Halloween2024Page() {
                     </h3>
 
                     <div className="mt-8 flex justify-center">
-                      <span className="text-7xl">🏆</span>
+                      <span className="text-7xl">
+                        🏆
+                      </span>
                     </div>
 
                     {premio?.nombre && (
@@ -479,14 +545,16 @@ export default async function Halloween2024Page() {
         </section>
 
         {/* GALERÍA */}
-        <GaleriaFotos edicionId={edicion.id} />
+        <GaleriaFotos edicionId={edicionId} />
 
         {/* FOOTER */}
         <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
           <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
             <p>THE GAME ARCHIVE</p>
 
-            <p>Halloween · Primera edición · Octubre 2024</p>
+            <p>
+              Halloween · Primera edición · Octubre 2024
+            </p>
           </div>
         </footer>
       </div>
