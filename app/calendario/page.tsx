@@ -37,13 +37,13 @@ const meses: Mes[] = [
 ];
 
 export default function CalendarioPage() {
-  const [mesActual, setMesActual] = useState<number | null>(null);
+  const [mesActual] = useState<number>(() =>
+    new Date().getMonth()
+  );
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [ediciones, setEdiciones] = useState<Edicion[]>([]);
 
   useEffect(() => {
-    setMesActual(new Date().getMonth());
-
     async function cargarEventosCalendario() {
       const { createClient } = await import(
         "@supabase/supabase-js"
@@ -117,9 +117,7 @@ export default function CalendarioPage() {
   }
 
   const eventoDelMes =
-    mesActual !== null
-      ? obtenerEventoDelMes(mesActual)
-      : null;
+    obtenerEventoDelMes(mesActual);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">

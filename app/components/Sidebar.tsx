@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Evento = {
@@ -22,26 +23,9 @@ const enlacesPrincipales = [
 ];
 
 export default function Sidebar() {
-  const [rutaActual, setRutaActual] = useState("");
+  const pathname = usePathname();
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [menuAbierto, setMenuAbierto] = useState(false);
-
-  useEffect(() => {
-    setRutaActual(window.location.pathname);
-
-    function actualizarRuta() {
-      setRutaActual(window.location.pathname);
-    }
-
-    window.addEventListener("popstate", actualizarRuta);
-
-    return () => {
-      window.removeEventListener(
-        "popstate",
-        actualizarRuta
-      );
-    };
-  }, []);
 
   useEffect(() => {
     async function cargarEventos() {
@@ -55,7 +39,6 @@ export default function Sidebar() {
           "Error cargando eventos:",
           error
         );
-
         return;
       }
 
@@ -68,10 +51,9 @@ export default function Sidebar() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuAbierto(false);
-  }, [rutaActual]);
+  }, [pathname]);
 
-  function navegar(href: string) {
-    setRutaActual(href);
+  function navegar() {
     setMenuAbierto(false);
   }
 
@@ -82,7 +64,7 @@ export default function Sidebar() {
         <div className="border-b border-white/10 px-6 py-6">
           <Link
             href="/"
-            onClick={() => navegar("/")}
+            onClick={navegar}
             className="block"
           >
             <p className="text-xs font-semibold tracking-[0.35em] text-zinc-500">
@@ -104,16 +86,14 @@ export default function Sidebar() {
             {enlacesPrincipales.map((enlace) => {
               const activo =
                 enlace.href === "/"
-                  ? rutaActual === "/"
-                  : rutaActual.startsWith(
-                      enlace.href
-                    );
+                  ? pathname === "/"
+                  : pathname.startsWith(enlace.href);
 
               return (
                 <Link
                   key={enlace.href}
                   href={enlace.href}
-                  onClick={() => navegar(enlace.href)}
+                  onClick={navegar}
                   className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
                     activo
                       ? "bg-violet-600/20 text-white"
@@ -141,13 +121,13 @@ export default function Sidebar() {
               const href = `/eventos/${evento.slug}`;
 
               const activo =
-                rutaActual.startsWith(href);
+                pathname.startsWith(href);
 
               return (
                 <Link
                   key={evento.id}
                   href={href}
-                  onClick={() => navegar(href)}
+                  onClick={navegar}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                     activo
                       ? "bg-violet-600/20 text-white"
@@ -212,7 +192,7 @@ export default function Sidebar() {
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
               <Link
                 href="/"
-                onClick={() => navegar("/")}
+                onClick={navegar}
                 className="block"
               >
                 <p className="text-xs font-semibold tracking-[0.35em] text-zinc-500">
@@ -243,8 +223,8 @@ export default function Sidebar() {
                 {enlacesPrincipales.map((enlace) => {
                   const activo =
                     enlace.href === "/"
-                      ? rutaActual === "/"
-                      : rutaActual.startsWith(
+                      ? pathname === "/"
+                      : pathname.startsWith(
                           enlace.href
                         );
 
@@ -252,9 +232,7 @@ export default function Sidebar() {
                     <Link
                       key={enlace.href}
                       href={enlace.href}
-                      onClick={() =>
-                        navegar(enlace.href)
-                      }
+                      onClick={navegar}
                       className={`flex items-center gap-4 rounded-xl px-4 py-4 text-base font-medium transition ${
                         activo
                           ? "bg-violet-600/20 text-white"
@@ -282,13 +260,13 @@ export default function Sidebar() {
                   const href = `/eventos/${evento.slug}`;
 
                   const activo =
-                    rutaActual.startsWith(href);
+                    pathname.startsWith(href);
 
                   return (
                     <Link
                       key={evento.id}
                       href={href}
-                      onClick={() => navegar(href)}
+                      onClick={navegar}
                       className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition ${
                         activo
                           ? "bg-violet-600/20 text-white"
