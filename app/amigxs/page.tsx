@@ -54,6 +54,7 @@ type HistorialParticipacion = {
 type HallOfFame = {
   año: string;
   evento: string;
+  slug: string;
 };
 
 const fotosAmigxs: Record<number, string> = {
@@ -308,6 +309,7 @@ export default function AmigxsPage() {
           hallOfFameTemporal[premio.persona_id].push({
             año: edicion.año,
             evento: evento.nombre,
+            slug: evento.slug,
           });
         }
       });
@@ -512,6 +514,12 @@ export default function AmigxsPage() {
     ? historial[personaSeleccionada.id] ?? []
     : [];
 
+  const etiquetasVisiblesSeleccionado =
+    personaSeleccionada?.etiquetas?.filter(
+      (etiqueta) =>
+        etiqueta !== "OG Hall of Famer"
+    ) ?? [];
+
   if (cargando) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -641,6 +649,13 @@ export default function AmigxsPage() {
                     const premiosPersona =
                       hallOfFame[amigx.id] ?? [];
 
+                    const etiquetasVisibles =
+                      amigx.etiquetas?.filter(
+                        (etiqueta) =>
+                          etiqueta !==
+                          "OG Hall of Famer"
+                      ) ?? [];
+
                     return (
                       <button
                         key={amigx.id}
@@ -719,21 +734,24 @@ export default function AmigxsPage() {
                           <div className="mt-5 flex flex-wrap gap-2">
                             {Array.from(
                               new Map(
-                                premiosPersona.map((premio) => [
-                                  premio.año,
-                                  premio,
-                                ])
+                                premiosPersona.map(
+                                  (premio) => [
+                                    premio.año,
+                                    premio,
+                                  ]
+                                )
                               ).values()
                             ).map((premio) => (
                               <span
                                 key={`hall-of-famer-${premio.año}`}
                                 className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-950/80 via-yellow-900/50 to-amber-950/80 px-3 py-1.5 text-xs font-black tracking-wide text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.08)]"
                               >
-                                🏆 Hall of Famer {premio.año}
+                                🏆 Hall of Famer{" "}
+                                {premio.año}
                               </span>
                             ))}
 
-                            {amigx.etiquetas?.map(
+                            {etiquetasVisibles.map(
                               (etiqueta) => (
                                 <span
                                   key={etiqueta}
@@ -912,7 +930,9 @@ export default function AmigxsPage() {
 
                         <p className="mt-2 font-semibold text-zinc-200">
                           🎂{" "}
-                          {personaSeleccionada.cumpleaños}
+                          {
+                            personaSeleccionada.cumpleaños
+                          }
                         </p>
                       </div>
                     )}
@@ -943,17 +963,20 @@ export default function AmigxsPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {Array.from(
                       new Map(
-                        hallOfFameSeleccionado.map((premio) => [
-                          premio.año,
-                          premio,
-                        ])
+                        hallOfFameSeleccionado.map(
+                          (premio) => [
+                            premio.año,
+                            premio,
+                          ]
+                        )
                       ).values()
                     ).map((premio) => (
                       <span
                         key={`hall-of-famer-${premio.año}`}
                         className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-950/80 via-yellow-900/40 to-amber-950/80 px-4 py-2 text-sm font-black tracking-wide text-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.08)]"
                       >
-                        🏆 Hall of Famer {premio.año}
+                        🏆 Hall of Famer{" "}
+                        {premio.año}
                       </span>
                     ))}
                   </div>
@@ -1008,7 +1031,9 @@ export default function AmigxsPage() {
                           key={`${item.evento}-${item.año}-${index}`}
                           href={`/eventos/${item.slug}/${item.año}`}
                           onClick={() =>
-                            setPersonaSeleccionada(null)
+                            setPersonaSeleccionada(
+                              null
+                            )
                           }
                           className="group block rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-violet-500/40 hover:bg-violet-950/10"
                         >
@@ -1047,27 +1072,27 @@ export default function AmigxsPage() {
               )}
 
               {/* ETIQUETAS */}
-              {personaSeleccionada.etiquetas &&
-                personaSeleccionada.etiquetas.length > 0 && (
-                  <div className="mt-9 border-t border-white/10 pt-7">
-                    <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600">
-                      Etiquetas
-                    </p>
+              {etiquetasVisiblesSeleccionado.length >
+                0 && (
+                <div className="mt-9 border-t border-white/10 pt-7">
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600">
+                    Etiquetas
+                  </p>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {personaSeleccionada.etiquetas.map(
-                        (etiqueta) => (
-                          <span
-                            key={etiqueta}
-                            className="rounded-full border border-violet-500/20 bg-violet-950/30 px-4 py-2 text-sm font-bold tracking-wide text-violet-300"
-                          >
-                            {etiqueta}
-                          </span>
-                        )
-                      )}
-                    </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {etiquetasVisiblesSeleccionado.map(
+                      (etiqueta) => (
+                        <span
+                          key={etiqueta}
+                          className="rounded-full border border-violet-500/20 bg-violet-950/30 px-4 py-2 text-sm font-bold tracking-wide text-violet-300"
+                        >
+                          {etiqueta}
+                        </span>
+                      )
+                    )}
                   </div>
-                )}
+                </div>
+              )}
             </div>
           </div>
         </div>

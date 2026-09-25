@@ -447,154 +447,173 @@ export default function HallOfFamePage() {
           ) : (
             <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
               {campeonesFiltrados.map(
-                (campeon) => (
-                  <a
-                    key={
-                      campeon.edicionId
-                    }
-                    href={`/eventos/${campeon.slug}/${campeon.año}`}
-                    className="group relative block"
-                  >
-                    {/* MARCO EXTERIOR */}
-                    <div className="relative rounded-[2rem] bg-gradient-to-br from-[#fff1a8] via-[#c99b30] to-[#6e4912] p-[2px] shadow-2xl shadow-black/60 transition duration-500 group-hover:-translate-y-3 group-hover:shadow-[0_25px_70px_rgba(212,175,55,0.25)]">
-                      {/* MARCO INTERIOR */}
-                      <div className="relative rounded-[1.9rem] bg-gradient-to-br from-[#3b2b0b] via-[#15120d] to-[#050505] p-[5px]">
-                        {/* BORDE INTERNO */}
-                        <div className="relative overflow-hidden rounded-[1.65rem] border border-[#d4af37]/50 bg-[#080808]">
-                          {/* BRILLO SUPERIOR */}
-                          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-32 bg-gradient-to-b from-[#d4af37]/10 to-transparent" />
+                (campeon) => {
+                  if (
+                    !campeon.evento
+                  ) {
+                    return null;
+                  }
 
-                          {/* ESQUINA SUPERIOR IZQUIERDA */}
-                          <div className="absolute left-3 top-3 z-30 h-10 w-10 border-l-2 border-t-2 border-[#e6c766]/80" />
+                  const esHalloweenHistorico =
+                    campeon.slug ===
+                      "halloween" &&
+                    Number(campeon.año) <=
+                      2024;
 
-                          {/* ESQUINA SUPERIOR DERECHA */}
-                          <div className="absolute right-3 top-3 z-30 h-10 w-10 border-r-2 border-t-2 border-[#e6c766]/80" />
+                  const hrefCampeon =
+                    esHalloweenHistorico
+                      ? "/eventos/halloween/2024"
+                      : `/eventos/${campeon.slug}/${campeon.año}`;
 
-                          {/* ESQUINA INFERIOR IZQUIERDA */}
-                          <div className="absolute bottom-3 left-3 z-30 h-10 w-10 border-b-2 border-l-2 border-[#e6c766]/80" />
+                  return (
+                    <a
+                      key={
+                        campeon.edicionId
+                      }
+                      href={hrefCampeon}
+                      className="group relative block"
+                    >
+                      {/* MARCO EXTERIOR */}
+                      <div className="relative rounded-[2rem] bg-gradient-to-br from-[#fff1a8] via-[#c99b30] to-[#6e4912] p-[2px] shadow-2xl shadow-black/60 transition duration-500 group-hover:-translate-y-3 group-hover:shadow-[0_25px_70px_rgba(212,175,55,0.25)]">
+                        {/* MARCO INTERIOR */}
+                        <div className="relative rounded-[1.9rem] bg-gradient-to-br from-[#3b2b0b] via-[#15120d] to-[#050505] p-[5px]">
+                          {/* BORDE INTERNO */}
+                          <div className="relative overflow-hidden rounded-[1.65rem] border border-[#d4af37]/50 bg-[#080808]">
+                            {/* BRILLO SUPERIOR */}
+                            <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-32 bg-gradient-to-b from-[#d4af37]/10 to-transparent" />
 
-                          {/* ESQUINA INFERIOR DERECHA */}
-                          <div className="absolute bottom-3 right-3 z-30 h-10 w-10 border-b-2 border-r-2 border-[#e6c766]/80" />
+                            {/* ESQUINA SUPERIOR IZQUIERDA */}
+                            <div className="absolute left-3 top-3 z-30 h-10 w-10 border-l-2 border-t-2 border-[#e6c766]/80" />
 
-                          {/* FOTO */}
-                          <div className="relative h-[430px] overflow-hidden bg-gradient-to-b from-[#17130b] to-black">
-                            {campeon.image ? (
-                              <img
-                                src={
-                                  campeon.image
+                            {/* ESQUINA SUPERIOR DERECHA */}
+                            <div className="absolute right-3 top-3 z-30 h-10 w-10 border-r-2 border-t-2 border-[#e6c766]/80" />
+
+                            {/* ESQUINA INFERIOR IZQUIERDA */}
+                            <div className="absolute bottom-3 left-3 z-30 h-10 w-10 border-b-2 border-l-2 border-[#e6c766]/80" />
+
+                            {/* ESQUINA INFERIOR DERECHA */}
+                            <div className="absolute bottom-3 right-3 z-30 h-10 w-10 border-b-2 border-r-2 border-[#e6c766]/80" />
+
+                            {/* FOTO */}
+                            <div className="relative h-[430px] overflow-hidden bg-gradient-to-b from-[#17130b] to-black">
+                              {campeon.image ? (
+                                <img
+                                  src={
+                                    campeon.image
+                                  }
+                                  alt={
+                                    campeon.winner
+                                  }
+                                  className="h-full w-full object-contain object-center transition duration-700 group-hover:scale-[1.03]"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center">
+                                  {campeon.logo ? (
+                                    <img
+                                      src={
+                                        campeon.logo
+                                      }
+                                      alt={
+                                        campeon.evento
+                                      }
+                                      className="max-h-48 max-w-[70%] object-contain opacity-50"
+                                    />
+                                  ) : (
+                                    <span className="text-7xl text-[#d4af37]">
+                                      ♛
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* DEGRADADO */}
+                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+
+                              {/* PLACA CAMPEÓN */}
+                              <div className="absolute right-5 top-5 rounded-full border border-[#e6c766]/60 bg-black/75 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-[#e6c766] shadow-xl backdrop-blur-md">
+                                {
+                                  campeon.title
                                 }
-                                alt={
-                                  campeon.winner
-                                }
-                                className="h-full w-full object-contain object-center transition duration-700 group-hover:scale-[1.03]"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center">
-                                {campeon.logo ? (
+                              </div>
+
+                              {/* AÑO + NOMBRE */}
+                              <div className="absolute bottom-7 left-0 right-0 px-6 text-center">
+                                <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#d9b957]">
+                                  {
+                                    campeon.año
+                                  }
+                                </p>
+
+                                <h2 className="mt-3 text-4xl font-black tracking-tight text-white drop-shadow-lg">
+                                  {
+                                    campeon.winner
+                                  }
+                                </h2>
+                              </div>
+                            </div>
+
+                            {/* INFORMACIÓN */}
+                            <div className="relative bg-gradient-to-b from-[#11100d] to-[#050505] px-7 pb-7 pt-6">
+                              {/* SEPARADOR ORNAMENTAL */}
+                              <div className="mb-5 flex items-center justify-center gap-3">
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#a9822d]/70 to-[#a9822d]/30" />
+
+                                <span className="text-sm text-[#d4af37]">
+                                  ✦
+                                </span>
+
+                                <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[#a9822d]/70 to-[#a9822d]/30" />
+                              </div>
+
+                              {/* LOGO */}
+                              <div className="flex h-20 items-center justify-center">
+                                {campeon.logo && (
                                   <img
                                     src={
                                       campeon.logo
                                     }
-                                    alt={
-                                      campeon.evento
-                                    }
-                                    className="max-h-48 max-w-[70%] object-contain opacity-50"
+                                    alt={`Logo ${campeon.evento}`}
+                                    className="max-h-16 max-w-[190px] object-contain opacity-90 transition duration-300 group-hover:scale-105 group-hover:opacity-100"
                                   />
-                                ) : (
-                                  <span className="text-7xl text-[#d4af37]">
-                                    ♛
-                                  </span>
                                 )}
                               </div>
-                            )}
 
-                            {/* DEGRADADO */}
-                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+                              {/* EVENTO */}
+                              <div className="mt-5 text-center">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-[#8d8a82]">
+                                  Evento
+                                </p>
 
-                            {/* PLACA CAMPEÓN */}
-                            <div className="absolute right-5 top-5 rounded-full border border-[#e6c766]/60 bg-black/75 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-[#e6c766] shadow-xl backdrop-blur-md">
-                              {
-                                campeon.title
-                              }
-                            </div>
-
-                            {/* AÑO + NOMBRE */}
-                            <div className="absolute bottom-7 left-0 right-0 px-6 text-center">
-                              <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#d9b957]">
-                                {
-                                  campeon.año
-                                }
-                              </p>
-
-                              <h2 className="mt-3 text-4xl font-black tracking-tight text-white drop-shadow-lg">
-                                {
-                                  campeon.winner
-                                }
-                              </h2>
-                            </div>
-                          </div>
-
-                          {/* INFORMACIÓN */}
-                          <div className="relative bg-gradient-to-b from-[#11100d] to-[#050505] px-7 pb-7 pt-6">
-                            {/* SEPARADOR ORNAMENTAL */}
-                            <div className="mb-5 flex items-center justify-center gap-3">
-                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#a9822d]/70 to-[#a9822d]/30" />
-
-                              <span className="text-sm text-[#d4af37]">
-                                ✦
-                              </span>
-
-                              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[#a9822d]/70 to-[#a9822d]/30" />
-                            </div>
-
-                            {/* LOGO */}
-                            <div className="flex h-20 items-center justify-center">
-                              {campeon.logo && (
-                                <img
-                                  src={
-                                    campeon.logo
+                                <p className="mt-2 text-lg font-semibold tracking-wide text-zinc-200">
+                                  {
+                                    campeon.evento
                                   }
-                                  alt={`Logo ${campeon.evento}`}
-                                  className="max-h-16 max-w-[190px] object-contain opacity-90 transition duration-300 group-hover:scale-105 group-hover:opacity-100"
-                                />
-                              )}
-                            </div>
+                                </p>
+                              </div>
 
-                            {/* EVENTO */}
-                            <div className="mt-5 text-center">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-[#8d8a82]">
-                                Evento
-                              </p>
+                              {/* PIE */}
+                              <div className="mt-6 flex items-center justify-between border-t border-[#d4af37]/15 pt-4">
+                                <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+                                  {
+                                    campeon.title
+                                  }{" "}
+                                  ·{" "}
+                                  {
+                                    campeon.año
+                                  }
+                                </p>
 
-                              <p className="mt-2 text-lg font-semibold tracking-wide text-zinc-200">
-                                {
-                                  campeon.evento
-                                }
-                              </p>
-                            </div>
-
-                            {/* PIE */}
-                            <div className="mt-6 flex items-center justify-between border-t border-[#d4af37]/15 pt-4">
-                              <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-                                {
-                                  campeon.title
-                                }{" "}
-                                ·{" "}
-                                {
-                                  campeon.año
-                                }
-                              </p>
-
-                              <span className="text-xs font-semibold text-[#d4af37] opacity-0 transition duration-300 group-hover:opacity-100">
-                                VER EVENTO →
-                              </span>
+                                <span className="text-xs font-semibold text-[#d4af37] opacity-0 transition duration-300 group-hover:opacity-100">
+                                  VER EVENTO →
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </a>
-                )
+                    </a>
+                  );
+                }
               )}
             </div>
           )}

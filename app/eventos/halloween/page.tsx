@@ -171,6 +171,14 @@ export default async function HalloweenPage() {
     )
   );
 
+  const edicionesNormales = ediciones.filter(
+    (edicion) => Number(edicion.año) >= 2025
+  );
+
+  const existeArchivoHistorico = ediciones.some(
+    (edicion) => Number(edicion.año) <= 2024
+  );
+
   return (
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
@@ -324,12 +332,12 @@ export default async function HalloweenPage() {
             </h2>
 
             <p className="mx-auto mt-6 max-w-2xl text-zinc-400">
-              Todas las ediciones de Halloween quedarán registradas
-              aquí.
+              Las ediciones más recientes y el archivo histórico
+              de Halloween.
             </p>
           </div>
 
-          {ediciones.length === 0 ? (
+          {!edicionesNormales.length && !existeArchivoHistorico ? (
             <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-white/10 bg-black/40 px-8 py-16 text-center backdrop-blur-sm">
               <p className="text-5xl">
                 👻
@@ -345,7 +353,7 @@ export default async function HalloweenPage() {
             </div>
           ) : (
             <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {ediciones.map((edicion) => {
+              {edicionesNormales.map((edicion) => {
                 const ganador =
                   ganadorPorEdicion.get(
                     edicion.id
@@ -421,6 +429,59 @@ export default async function HalloweenPage() {
                   </a>
                 );
               })}
+
+              {/* EDICIONES HISTÓRICAS */}
+              {existeArchivoHistorico && (
+                <a
+                  href="/eventos/halloween/2024"
+                  className="group overflow-hidden rounded-3xl border border-orange-500/30 bg-black/50 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-orange-500/60 hover:bg-black/70"
+                >
+                  <div className="relative flex h-64 items-center justify-center overflow-hidden bg-black/60">
+                    <img
+                      src={
+                        evento.logo ??
+                        "/logos/logohalloween.png"
+                      }
+                      alt="Ediciones históricas de Halloween"
+                      className="max-h-40 max-w-[82%] object-contain opacity-90 transition duration-500 group-hover:scale-105 group-hover:opacity-100"
+                    />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
+
+                    <div className="absolute bottom-5 left-6">
+                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-400">
+                        Archivo histórico
+                      </p>
+
+                      <p className="mt-1 text-2xl font-black uppercase leading-none text-white">
+                        Ediciones
+                        <br />
+                        históricas
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="px-6 py-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-orange-400">
+                      Historia de Halloween
+                    </p>
+
+                    <p className="mt-1 text-lg font-bold text-white">
+                      2018–2024
+                    </p>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+                      <p className="text-sm text-zinc-400">
+                        Ver archivo histórico
+                      </p>
+
+                      <span className="text-sm font-semibold text-orange-400 transition duration-300 group-hover:translate-x-1">
+                        →
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              )}
             </div>
           )}
         </section>

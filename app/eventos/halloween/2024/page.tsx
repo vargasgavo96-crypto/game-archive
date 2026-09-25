@@ -16,30 +16,192 @@ type Edicion = {
   fecha: string;
 };
 
-type Persona = {
-  id: number;
+type ParticipanteHistorico = {
   nombre: string;
-  imagen: string | null;
+  posicion: number;
+  personaId?: number;
 };
 
-type Premio = {
-  id: number;
-  persona_id: number;
-  edicion_id: number;
-  nombre: string;
-  descripcion: string | null;
-  imagen: string | null;
+type EdicionHistorica = {
+  año: number;
+  participantes: ParticipanteHistorico[];
 };
 
-type Participacion = {
-  id: number;
-  persona_id: number;
-  edicion_id: number;
-  posicion: number | null;
-  puntos_finales: number | null;
+const fotosAmigxs: Record<number, string> = {
+  4: "/amigxs/angelo.png",
+  1: "/amigxs/ayelen.png",
+  24: "/amigxs/fefi.png",
+  17: "/amigxs/camilo.png",
+  11: "/amigxs/coni.png",
+  7: "/amigxs/cristian.png",
+  3: "/amigxs/cristobal.png",
+  26: "/amigxs/diego.png",
+  6: "/amigxs/gonza.png",
+  13: "/amigxs/harper.png",
+  2: "/amigxs/javier.png",
+  25: "/amigxs/jeimy.png",
+  9: "/amigxs/juancarlos.png",
+  5: "/amigxs/koke.png",
+  15: "/amigxs/leslie.png",
+  19: "/amigxs/nacho.png",
+  10: "/amigxs/nico.png",
+  12: "/amigxs/pipe.png",
+  16: "/amigxs/ricardo.png",
+  21: "/amigxs/sebamartinez.png",
+  14: "/amigxs/sebasilva.png",
+  22: "/amigxs/vicente.png",
 };
 
-function nombreCorto(nombre: string) {
+const edicionesHistoricas: EdicionHistorica[] = [
+  {
+    año: 2024,
+    participantes: [
+      {
+        nombre: "Hans Oyarzo",
+        posicion: 1,
+      },
+      {
+        nombre: "Ángelo Gabriel Pérez Oyarzo",
+        posicion: 2,
+        personaId: 4,
+      },
+      {
+        nombre: "Leslie Jazmin Novoa Mansilla",
+        posicion: 3,
+        personaId: 15,
+      },
+    ],
+  },
+  {
+    año: 2023,
+    participantes: [
+      {
+        nombre: "Blas Davor Gessel Yasic",
+        posicion: 1,
+      },
+      {
+        nombre: "Javier Eduardo Reyes Manzano",
+        posicion: 2,
+        personaId: 2,
+      },
+      {
+        nombre: "Ángelo Gabriel Pérez Oyarzo",
+        posicion: 3,
+        personaId: 4,
+      },
+    ],
+  },
+  {
+    año: 2022,
+    participantes: [
+      {
+        nombre: "Ricardo Sebastian Vargas Vidal",
+        posicion: 1,
+        personaId: 16,
+      },
+      {
+        nombre:
+          "Juan Carlos Pérez Herreros & Andrés Eduardo Menéndez Oyarzo",
+        posicion: 2,
+        personaId: 9,
+      },
+      {
+        nombre: "Constanza Graciela Osorio Retamal",
+        posicion: 3,
+        personaId: 11,
+      },
+    ],
+  },
+  {
+    año: 2021,
+    participantes: [
+      {
+        nombre: "Javier Eduardo Reyes Manzano",
+        posicion: 1,
+        personaId: 2,
+      },
+      {
+        nombre: "Camilo Javier Avendaño Mancilla",
+        posicion: 2,
+        personaId: 17,
+      },
+      {
+        nombre: "Ricardo Sebastian Vargas Vidal",
+        posicion: 3,
+        personaId: 16,
+      },
+    ],
+  },
+  {
+    año: 2020,
+    participantes: [
+      {
+        nombre: "The House",
+        posicion: 1,
+      },
+    ],
+  },
+  {
+    año: 2019,
+    participantes: [
+      {
+        nombre: "Iván Luis Vera Vidal",
+        posicion: 1,
+      },
+      {
+        nombre: "Christopher Osvaldo Antonio Lillo",
+        posicion: 2,
+      },
+      {
+        nombre: "Iván Alejandro Harper González",
+        posicion: 3,
+        personaId: 13,
+      },
+    ],
+  },
+  {
+    año: 2018,
+    participantes: [
+      {
+        nombre: "Camilo Javier Avendaño Mancilla",
+        posicion: 1,
+        personaId: 17,
+      },
+      {
+        nombre: "Javiera Ruiz",
+        posicion: 2,
+      },
+      {
+        nombre: "Javier Eduardo Reyes Manzano",
+        posicion: 3,
+        personaId: 2,
+      },
+    ],
+  },
+];
+
+function nombreHistorico(nombre: string) {
+  const normalizado = nombre.trim().toLowerCase();
+
+  if (normalizado === "hans oyarzo") {
+    return "Hans";
+  }
+
+  if (normalizado === "the house") {
+    return "The House";
+  }
+
+  if (normalizado === "javiera ruiz") {
+    return "Javiera Ruiz";
+  }
+
+  if (
+    normalizado ===
+    "juan carlos pérez herreros & andrés eduardo menéndez oyarzo"
+  ) {
+    return "Juan Carlos & Andrés";
+  }
+
   const partes = nombre.trim().split(/\s+/);
 
   if (partes.length === 1) {
@@ -49,23 +211,45 @@ function nombreCorto(nombre: string) {
   return `${partes[0]} ${partes[partes.length - 2]}`;
 }
 
-function posicionTexto(posicion: number | null) {
+function posicionTexto(posicion: number) {
   if (posicion === 1) return "1.º LUGAR";
   if (posicion === 2) return "2.º LUGAR";
   if (posicion === 3) return "3.º LUGAR";
-  if (posicion) return `${posicion}.º LUGAR`;
-  return "SIN POSICIÓN";
+  return `${posicion}.º LUGAR`;
+}
+
+function posicionEmoji(posicion: number) {
+  if (posicion === 1) return "🥇";
+  if (posicion === 2) return "🥈";
+  if (posicion === 3) return "🥉";
+  return "🏆";
+}
+
+function getImagenParticipante(
+  participante: ParticipanteHistorico
+) {
+  if (!participante.personaId) {
+    return null;
+  }
+
+  return fotosAmigxs[participante.personaId] ?? null;
 }
 
 export default async function Halloween2024Page() {
-  const { data: evento, error: eventoError } = await supabase
+  const {
+    data: evento,
+    error: eventoError,
+  } = await supabase
     .from("eventos")
     .select("id, nombre, descripcion, logo, slug")
     .eq("slug", "halloween")
     .single();
 
   if (eventoError || !evento) {
-    console.error("Error cargando Halloween:", eventoError);
+    console.error(
+      "Error cargando Halloween:",
+      eventoError
+    );
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
@@ -90,149 +274,23 @@ export default async function Halloween2024Page() {
     .select("*")
     .eq("evento_id", evento.id);
 
-  const ediciones =
-    (edicionesData as unknown as Edicion[] | null) ?? [];
-
-  const edicion = ediciones.find(
-    (item) => String(item.año) === "2024"
-  );
-
-  if (edicionesError || !edicion) {
+  if (edicionesError) {
     console.error(
-      "Error cargando edición:",
+      "Error cargando ediciones:",
       edicionesError
     );
-
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-red-400">
-            No se encontró Halloween 2024
-          </h1>
-
-          <p className="mt-3 text-zinc-400">
-            Revisa que la edición 2024 exista en Supabase.
-          </p>
-        </div>
-      </main>
-    );
   }
 
-  const edicionId = edicion.id;
-
-  const {
-    data: participacionesData,
-    error: participacionesError,
-  } = await supabase
-    .from("participaciones")
-    .select(
-      "id, persona_id, edicion_id, posicion, puntos_finales"
-    )
-    .eq("edicion_id", edicionId)
-    .order("posicion", {
-      ascending: true,
-      nullsFirst: false,
-    });
-
-  if (participacionesError) {
-    console.error(
-      "Error cargando participaciones:",
-      participacionesError
-    );
-  }
-
-  const participaciones =
-    (participacionesData as unknown as Participacion[] | null) ??
+  const edicionesSupabase =
+    (edicionesData as unknown as Edicion[] | null) ??
     [];
 
-  const personaIds = participaciones.map(
-    (participacion) => participacion.persona_id
-  );
-
-  let personas: Persona[] = [];
-
-  if (personaIds.length > 0) {
-    const {
-      data: personasData,
-      error: personasError,
-    } = await supabase
-      .from("personas")
-      .select("id, nombre, imagen")
-      .in("id", personaIds);
-
-    if (personasError) {
-      console.error(
-        "Error cargando personas:",
-        personasError
-      );
-    }
-
-    personas =
-      (personasData as unknown as Persona[] | null) ?? [];
-  }
-
-  const personaPorId = new Map(
-    personas.map((persona) => [
-      persona.id,
-      persona,
+  const edicionPorAño = new Map(
+    edicionesSupabase.map((edicion) => [
+      Number(edicion.año),
+      edicion,
     ])
   );
-
-  const {
-    data: premioData,
-    error: premioError,
-  } = await supabase
-    .from("premios")
-    .select(
-      "id, persona_id, edicion_id, nombre, descripcion, imagen"
-    )
-    .eq("edicion_id", edicionId)
-    .maybeSingle();
-
-  const premio =
-    (premioData as unknown as Premio | null) ?? null;
-
-  if (premioError) {
-    console.error(
-      "Error cargando premio:",
-      premioError
-    );
-  }
-
-  const participacionGanadora =
-    participaciones.find(
-      (participacion) =>
-        participacion.posicion === 1
-    );
-
-  const ganadorId =
-    premio?.persona_id ??
-    participacionGanadora?.persona_id;
-
-  const ganador = ganadorId
-    ? personaPorId.get(ganadorId)
-    : undefined;
-
-  const nombreGanador = ganador
-    ? nombreCorto(ganador.nombre)
-    : null;
-
-  const podio = participaciones
-    .filter(
-      (participacion) =>
-        participacion.posicion !== null &&
-        participacion.posicion <= 3
-    )
-    .sort(
-      (a, b) =>
-        (a.posicion ?? 99) -
-        (b.posicion ?? 99)
-    );
-
-  const imagenGanador =
-    premio?.imagen ??
-    ganador?.imagen ??
-    null;
 
   return (
     <main
@@ -242,14 +300,14 @@ export default async function Halloween2024Page() {
           "url('/eventos/halloween.png')",
       }}
     >
-      <div className="fixed inset-0 z-0 bg-black/65" />
+      <div className="fixed inset-0 z-0 bg-black/70" />
 
       <div className="relative z-10">
         {/* HERO */}
         <section className="relative overflow-hidden border-b border-white/10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,92,0,0.25),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,92,0,0.22),_transparent_50%)]" />
 
-          <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-28 text-center">
+          <div className="relative mx-auto flex min-h-[650px] max-w-7xl flex-col items-center justify-center px-6 py-28 text-center">
             <img
               src={
                 evento.logo ??
@@ -259,301 +317,295 @@ export default async function Halloween2024Page() {
               className="max-h-72 max-w-lg object-contain drop-shadow-[0_0_35px_rgba(255,120,0,0.35)]"
             />
 
-            <p className="mt-12 text-sm font-semibold uppercase tracking-[0.4em] text-orange-400">
-              Primera edición
+            <p className="mt-12 text-sm font-semibold uppercase tracking-[0.45em] text-orange-400">
+              Archivo histórico
             </p>
 
             <h1 className="mt-4 text-6xl font-black md:text-8xl">
               HALLOWEEN
             </h1>
 
-            <p className="mt-4 text-3xl font-bold text-white/80">
-              2024
-            </p>
-
             <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
-              Una celebración de Halloween junto a nuestros amigos,
-              con juegos, actividades y un torneo de disfraces.
+              Un recorrido por las distintas ediciones de
+              Halloween y por quienes han marcado la historia
+              de nuestro torneo de disfraces.
             </p>
           </div>
         </section>
 
-        {/* ¿CÓMO FUE ESTA EDICIÓN? */}
+        {/* HISTORIA */}
         <section className="mx-auto max-w-4xl px-6 py-24 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-            La edición
+            Nuestra historia
           </p>
 
-          <h2 className="mt-4 text-4xl font-bold md:text-5xl">
-            ¿CÓMO FUE ESTA EDICIÓN?
+          <h2 className="mt-4 text-4xl font-black md:text-6xl">
+            ARCHIVO DE HALLOWEEN
           </h2>
 
-          <div className="mt-8 space-y-6 text-lg leading-8 text-zinc-300">
-            <p>
-              Halloween 2024 fue una instancia para celebrar,
-              compartir y disfrutar junto a nuestros amigos.
-            </p>
-
-            <p>
-              Durante la celebración se realizaron diferentes
-              actividades y juegos, además de un torneo de disfraces
-              para determinar quién destacaría con su caracterización.
-            </p>
-          </div>
+          <p className="mt-8 text-lg leading-8 text-zinc-300">
+            Aquí quedan reunidas las ediciones históricas de
+            Halloween, desde 2018 hasta 2024. Cada edición
+            conserva sus resultados y su galería de fotografías.
+          </p>
         </section>
 
-        {/* PARTICIPANTES */}
+        {/* EDICIONES */}
         <section className="border-y border-white/10 bg-black/40">
-          <div className="mx-auto max-w-7xl px-6 py-24">
+          <div className="mx-auto max-w-7xl px-6 py-28">
             <div className="text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-                La competencia
-              </p>
-
-              <h2 className="mt-4 text-5xl font-black">
-                PARTICIPANTES
-              </h2>
-
-              <p className="mx-auto mt-5 max-w-2xl text-zinc-300">
-                Las personas que participaron en Halloween 2024.
-              </p>
-            </div>
-
-            {participaciones.length === 0 ? (
-              <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-white/10 bg-zinc-900/80 p-12 text-center">
-                <p className="text-5xl">👻</p>
-
-                <p className="mt-6 text-lg text-zinc-400">
-                  Los participantes todavía no han sido registrados.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-14 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {participaciones.map(
-                  (participacion) => {
-                    const persona =
-                      personaPorId.get(
-                        participacion.persona_id
-                      );
-
-                    if (!persona) return null;
-
-                    return (
-                      <div
-                        key={participacion.id}
-                        className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-orange-500/40"
-                      >
-                        <div className="relative h-64 overflow-hidden bg-black">
-                          {persona.imagen ? (
-                            <img
-                              src={persona.imagen}
-                              alt={nombreCorto(
-                                persona.nombre
-                              )}
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-6xl">
-                              🎃
-                            </div>
-                          )}
-
-                          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                        </div>
-
-                        <div className="p-6">
-                          <h3 className="text-2xl font-black">
-                            {nombreCorto(
-                              persona.nombre
-                            )}
-                          </h3>
-
-                          {participacion.posicion !==
-                            null && (
-                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-orange-400">
-                              {posicionTexto(
-                                participacion.posicion
-                              )}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* PODIO */}
-        <section className="mx-auto max-w-6xl px-6 py-28">
-          <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-              Resultados
-            </p>
-
-            <h2 className="mt-4 text-5xl font-black md:text-6xl">
-              PODIO
-            </h2>
-          </div>
-
-          {podio.length === 0 ? (
-            <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-white/10 bg-zinc-900/80 p-12 text-center">
-              <p className="text-5xl">🏆</p>
-
-              <p className="mt-6 text-lg text-zinc-400">
-                El podio todavía no ha sido registrado.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-16 grid items-end gap-6 md:grid-cols-3">
-              {podio.map((participacion) => {
-                const persona =
-                  personaPorId.get(
-                    participacion.persona_id
-                  );
-
-                if (!persona) return null;
-
-                const posicion =
-                  participacion.posicion ?? 0;
-
-                const altura =
-                  posicion === 1
-                    ? "min-h-[430px]"
-                    : posicion === 2
-                      ? "min-h-[360px]"
-                      : "min-h-[320px]";
-
-                const emoji =
-                  posicion === 1
-                    ? "🥇"
-                    : posicion === 2
-                      ? "🥈"
-                      : "🥉";
-
-                return (
-                  <div
-                    key={participacion.id}
-                    className={`relative ${altura} overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90`}
-                  >
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,120,0,0.12),_transparent_55%)]" />
-
-                    <div className="relative flex h-full flex-col items-center justify-center p-8 text-center">
-                      <span className="text-6xl">
-                        {emoji}
-                      </span>
-
-                      <p className="mt-6 text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-                        {posicionTexto(posicion)}
-                      </p>
-
-                      <h3 className="mt-4 text-4xl font-black">
-                        {nombreCorto(
-                          persona.nombre
-                        )}
-                      </h3>
-
-                      {participacion.puntos_finales !==
-                        null && (
-                        <p className="mt-4 text-zinc-400">
-                          {participacion.puntos_finales} puntos
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* GANADOR */}
-        <section className="border-y border-white/10 bg-black/40">
-          <div className="mx-auto max-w-6xl px-6 py-28">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-                Reconocimiento
+                El archivo
               </p>
 
               <h2 className="mt-4 text-5xl font-black md:text-7xl">
-                GANADOR
+                EDICIONES HISTÓRICAS
               </h2>
+
+              <p className="mx-auto mt-6 max-w-2xl text-zinc-500">
+                Desde los primeros años hasta la edición 2024.
+              </p>
             </div>
 
-            {ganador && nombreGanador ? (
-              <div className="mx-auto mt-12 max-w-5xl overflow-hidden rounded-3xl border border-orange-500/20 bg-zinc-900/90">
-                <div className="grid min-h-[600px] md:grid-cols-2">
-                  {/* INFORMACIÓN */}
-                  <div className="flex flex-col justify-center p-10 text-center md:p-14">
-                    <p className="text-sm uppercase tracking-[0.3em] text-orange-400">
-                      Campeón
-                    </p>
+            <div className="mt-24 space-y-32">
+              {edicionesHistoricas.map(
+                (edicionHistorica, indice) => {
+                  const edicionSupabase =
+                    edicionPorAño.get(
+                      edicionHistorica.año
+                    );
 
-                    <h3 className="mt-4 text-5xl font-black">
-                      {nombreGanador}
-                    </h3>
+                  const participantes =
+                    edicionHistorica.participantes;
 
-                    <div className="mt-8 flex justify-center">
-                      <span className="text-7xl">
-                        🏆
-                      </span>
-                    </div>
+                  const ganador =
+                    participantes.find(
+                      (participante) =>
+                        participante.posicion === 1
+                    ) ?? null;
 
-                    {premio?.nombre && (
-                      <p className="mt-8 text-xl font-semibold leading-8 text-zinc-200">
-                        {premio.nombre}
-                      </p>
-                    )}
+                  const imagenGanador =
+                    ganador
+                      ? getImagenParticipante(ganador)
+                      : null;
 
-                    {premio?.descripcion && (
-                      <p className="mt-5 text-sm leading-6 text-zinc-500">
-                        {premio.descripcion}
-                      </p>
-                    )}
-                  </div>
+                  const mostrarPodio =
+                    edicionHistorica.año !== 2020;
 
-                  {/* FOTO */}
-                  <div className="relative min-h-[600px] overflow-hidden bg-black">
-                    {imagenGanador ? (
-                      <img
-                        src={imagenGanador}
-                        alt={nombreGanador}
-                        className="h-full w-full object-contain object-right"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-8xl">
-                        🎃
+                  const esUltima =
+                    indice ===
+                    edicionesHistoricas.length - 1;
+
+                  return (
+                    <article
+                      key={edicionHistorica.año}
+                      className="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950/95 shadow-2xl"
+                    >
+                      {/* ENCABEZADO */}
+                      <div className="relative overflow-hidden border-b border-white/10 bg-black/70 px-8 py-10 md:px-12 md:py-12">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,_rgba(255,92,0,0.14),_transparent_45%)]" />
+
+                        <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                              Halloween
+                            </p>
+
+                            <h3 className="mt-2 text-6xl font-black md:text-8xl">
+                              {edicionHistorica.año}
+                            </h3>
+                          </div>
+
+                          <p className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600 md:pb-2">
+                            Edición histórica
+                          </p>
+                        </div>
                       </div>
-                    )}
 
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-900 via-transparent to-transparent" />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mx-auto mt-12 max-w-2xl rounded-3xl border border-white/10 bg-zinc-900/80 p-12 text-center">
-                <p className="text-6xl">🏆</p>
+                      {/* CAMPEÓN */}
+                      <div className="grid md:grid-cols-2">
+                        <div className="flex flex-col justify-center p-8 md:p-14">
+                          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                            Campeón
+                          </p>
 
-                <p className="mt-6 text-lg text-zinc-400">
-                  El ganador todavía no ha sido registrado.
-                </p>
-              </div>
-            )}
+                          {ganador ? (
+                            <>
+                              <h4 className="mt-5 text-5xl font-black md:text-6xl">
+                                {nombreHistorico(
+                                  ganador.nombre
+                                )}
+                              </h4>
+
+                              <p className="mt-5 text-lg font-semibold text-zinc-300">
+                                Mejor Disfraz Halloween{" "}
+                                {edicionHistorica.año}
+                              </p>
+
+                              <div className="mt-8">
+                                <span className="text-7xl">
+                                  🏆
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="mt-5 text-lg text-zinc-500">
+                              Ganador no registrado.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="relative min-h-[420px] overflow-hidden bg-black">
+                          {imagenGanador ? (
+                            <img
+                              src={imagenGanador}
+                              alt={nombreHistorico(
+                                ganador!.nombre
+                              )}
+                              className="h-full w-full object-contain object-right"
+                            />
+                          ) : (
+                            <div className="flex h-full min-h-[420px] items-center justify-center">
+                              <div className="text-center">
+                                <p className="text-8xl">
+                                  🎃
+                                </p>
+
+                                <p className="mt-5 text-xs font-bold uppercase tracking-[0.3em] text-zinc-700">
+                                  Sin fotografía
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-950 via-transparent to-transparent" />
+                        </div>
+                      </div>
+
+                      {/* PODIO */}
+                      {mostrarPodio && (
+                        <div className="border-t border-white/10 bg-black/20 px-8 py-12 md:px-12 md:py-14">
+                          <div className="text-center">
+                            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                              Resultados
+                            </p>
+
+                            <h4 className="mt-3 text-4xl font-black md:text-5xl">
+                              PODIO
+                            </h4>
+                          </div>
+
+                          <div className="mt-12 grid gap-6 md:grid-cols-3">
+                            {participantes
+                              .filter(
+                                (participante) =>
+                                  participante.posicion <= 3
+                              )
+                              .sort(
+                                (a, b) =>
+                                  a.posicion -
+                                  b.posicion
+                              )
+                              .map(
+                                (participante) => {
+                                  const imagen =
+                                    getImagenParticipante(
+                                      participante
+                                    );
+
+                                  const altura =
+                                    participante.posicion ===
+                                    1
+                                      ? "min-h-[430px]"
+                                      : participante.posicion ===
+                                          2
+                                        ? "min-h-[360px]"
+                                        : "min-h-[320px]";
+
+                                  return (
+                                    <div
+                                      key={`podio-${edicionHistorica.año}-${participante.nombre}`}
+                                      className={`relative ${altura} overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90`}
+                                    >
+                                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,120,0,0.12),_transparent_55%)]" />
+
+                                      <div className="relative flex h-full flex-col items-center justify-center p-8 text-center">
+                                        <span className="text-6xl">
+                                          {posicionEmoji(
+                                            participante.posicion
+                                          )}
+                                        </span>
+
+                                        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                                          {posicionTexto(
+                                            participante.posicion
+                                          )}
+                                        </p>
+
+                                        <h5 className="mt-4 text-4xl font-black">
+                                          {nombreHistorico(
+                                            participante.nombre
+                                          )}
+                                        </h5>
+
+                                        {imagen && (
+                                          <div className="mt-8 h-24 w-24 overflow-hidden rounded-full border border-white/10 bg-black">
+                                            <img
+                                              src={imagen}
+                                              alt={nombreHistorico(
+                                                participante.nombre
+                                              )}
+                                              className="h-full w-full object-cover"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* GALERÍA */}
+                      {edicionSupabase && (
+                        <div className="border-t border-white/10 px-8 py-12 md:px-12 md:py-14">
+                          <GaleriaFotos
+                            edicionId={
+                              edicionSupabase.id
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {/* SEPARADOR */}
+                      {!esUltima && (
+                        <div className="flex items-center gap-6 border-t border-white/5 bg-black/30 px-8 py-8 md:px-12">
+                          <div className="h-px flex-1 bg-white/10" />
+
+                          <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600">
+                            Siguiente edición
+                          </span>
+
+                          <div className="h-px flex-1 bg-white/10" />
+                        </div>
+                      )}
+                    </article>
+                  );
+                }
+              )}
+            </div>
           </div>
         </section>
 
-        {/* GALERÍA */}
-        <GaleriaFotos edicionId={edicionId} />
-
         {/* FOOTER */}
-        <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
-          <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
+        <footer className="border-t border-white/10 bg-black/50 px-6 py-10">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-zinc-500 md:flex-row md:justify-between">
             <p>THE GAME ARCHIVE</p>
 
             <p>
-              Halloween · Primera edición · Octubre 2024
+              Halloween · Archivo histórico · 2018–2024
             </p>
           </div>
         </footer>
