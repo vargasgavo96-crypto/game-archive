@@ -287,12 +287,23 @@ export default async function Halloween2024Page() {
     (edicionesData as unknown as Edicion[] | null) ??
     [];
 
-  const edicionPorAño = new Map(
-    edicionesSupabase.map((edicion) => [
-      Number(edicion.año),
-      edicion,
-    ])
-  );
+  // Halloween 2024 tiene la galería correcta en la edición con id 4.
+  // Priorizamos esa edición para evitar que otra fila duplicada del mismo
+  // año termine mostrando una galería distinta.
+  const edicionPorAño = new Map<number, Edicion>();
+
+  for (const edicion of edicionesSupabase) {
+    const año = Number(edicion.año);
+
+    if (año === 2024 && edicion.id === 4) {
+      edicionPorAño.set(año, edicion);
+      continue;
+    }
+
+    if (!edicionPorAño.has(año)) {
+      edicionPorAño.set(año, edicion);
+    }
+  }
 
   return (
     <main

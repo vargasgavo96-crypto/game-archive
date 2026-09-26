@@ -1,6 +1,10 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import GaleriaEdiciones from "@/app/components/GaleriaEdiciones";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type Evento = {
   id: number;
@@ -16,6 +20,15 @@ type Edicion = {
   evento_id: number;
   año: string;
   fecha: string;
+};
+
+type Foto = {
+  id: number;
+  edicion_id: number;
+  imagen: string;
+  descripcion: string | null;
+  orden: number | null;
+  created_at: string;
 };
 
 type Premio = {
@@ -110,6 +123,7 @@ export default async function EdicionPage({
   const [
     { data: premiosData },
     { data: participacionesData },
+    { data: fotosData, error: fotosError },
   ] = await Promise.all([
     supabase
       .from("premios")
@@ -127,13 +141,31 @@ export default async function EdicionPage({
       .order("posicion", {
         ascending: true,
       }),
+    supabase
+      .from("galerias")
+      .select(
+        "id, edicion_id, imagen, descripcion, orden, created_at"
+      )
+      .eq("edicion_id", edicion.id)
+      .order("orden", {
+        ascending: true,
+      })
+      .order("created_at", {
+        ascending: true,
+      }),
   ]);
+
+  if (fotosError) {
+    console.error("Error cargando la galería:", fotosError);
+  }
 
   const premios = (premiosData ??
     []) as Premio[];
 
   const participaciones = (participacionesData ??
     []) as Participacion[];
+
+  const fotos = (fotosData ?? []) as Foto[];
 
   const personaIds = Array.from(
     new Set([
@@ -278,6 +310,40 @@ export default async function EdicionPage({
             </div>
           </section>
         )}
+
+        <section className="border-y border-white/10 bg-black/40">
+          <div className="mx-auto max-w-7xl px-6 py-24">
+            <div className="text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
+                Recuerdos
+              </p>
+
+              <h2 className="mt-4 text-5xl font-black">
+                GALERÍA
+              </h2>
+
+              <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
+                Fotografías de esta edición.
+              </p>
+            </div>
+
+            <div className="mt-14">
+              <GaleriaEdiciones
+                ediciones={[
+                  {
+                    id: edicion.id,
+                    eventoId: evento.id,
+                    eventoNombre: evento.nombre,
+                    eventoLogo: evento.logo,
+                    año: edicion.año,
+                    fecha: edicion.fecha,
+                    fotos,
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        </section>
 
         <section className="border-y border-white/10 bg-black/40">
           <div className="mx-auto max-w-7xl px-6 py-24">

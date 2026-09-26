@@ -1,6 +1,15 @@
 import { supabase } from "@/lib/supabase";
 import GaleriaEdiciones from "@/app/components/GaleriaEdiciones";
 
+// =====================================================
+// IMPORTANTE:
+// Esta página debe consultar siempre los datos actuales
+// de Supabase y no utilizar una versión cacheada.
+// =====================================================
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type Evento = {
   id: number;
   nombre: string;
@@ -29,24 +38,54 @@ export default async function GaleriaPage() {
     { data: edicionesData, error: edicionesError },
     { data: fotosData, error: fotosError },
   ] = await Promise.all([
+    // =====================================================
+    // EVENTOS
+    // =====================================================
+
     supabase
       .from("eventos")
       .select("id, nombre, logo")
-      .order("nombre", { ascending: true }),
+      .order("nombre", {
+        ascending: true,
+      }),
+
+    // =====================================================
+    // EDICIONES
+    // =====================================================
+
     supabase
       .from("ediciones")
       .select("*")
-      .order("fecha", { ascending: false }),
+      .order("fecha", {
+        ascending: false,
+      }),
+
+    // =====================================================
+    // FOTOS
+    // =====================================================
+
     supabase
       .from("galerias")
       .select(
         "id, edicion_id, imagen, descripcion, orden, created_at"
       )
-      .order("orden", { ascending: true })
-      .order("created_at", { ascending: true }),
+      .order("orden", {
+        ascending: true,
+      })
+      .order("created_at", {
+        ascending: true,
+      }),
   ]);
 
-  if (eventosError || edicionesError || fotosError) {
+  // =====================================================
+  // ERRORES
+  // =====================================================
+
+  if (
+    eventosError ||
+    edicionesError ||
+    fotosError
+  ) {
     console.error({
       eventosError,
       edicionesError,
@@ -72,6 +111,10 @@ export default async function GaleriaPage() {
     );
   }
 
+  // =====================================================
+  // CONVERTIR DATOS
+  // =====================================================
+
   const eventos =
     (eventosData ?? []) as unknown as Evento[];
 
@@ -81,13 +124,25 @@ export default async function GaleriaPage() {
   const fotos =
     (fotosData ?? []) as unknown as Foto[];
 
+  // =====================================================
+  // MAPA DE EVENTOS
+  // =====================================================
+
   const mapaEventos = new Map<number, Evento>();
 
   for (const evento of eventos) {
-    mapaEventos.set(evento.id, evento);
+    mapaEventos.set(
+      evento.id,
+      evento
+    );
   }
 
-  const mapaFotos = new Map<number, Foto[]>();
+  // =====================================================
+  // MAPA DE FOTOS POR EDICIÓN
+  // =====================================================
+
+  const mapaFotos =
+    new Map<number, Foto[]>();
 
   for (const foto of fotos) {
     const fotosEdicion =
@@ -101,11 +156,16 @@ export default async function GaleriaPage() {
     );
   }
 
+  // =====================================================
+  // CONSTRUIR EDICIONES DE GALERÍA
+  // =====================================================
+
   const edicionesGaleria = ediciones
     .map((edicion) => {
-      const evento = mapaEventos.get(
-        edicion.evento_id
-      );
+      const evento =
+        mapaEventos.get(
+          edicion.evento_id
+        );
 
       if (!evento) {
         return null;
@@ -118,19 +178,33 @@ export default async function GaleriaPage() {
         eventoLogo: evento.logo,
         año: edicion.año,
         fecha: edicion.fecha,
-        fotos: mapaFotos.get(edicion.id) ?? [],
+
+        // AQUÍ se utilizan las fotos actuales
+        // directamente desde Supabase.
+        fotos:
+          mapaFotos.get(edicion.id) ?? [],
       };
     })
     .filter(
       (
         edicion
-      ): edicion is NonNullable<typeof edicion> =>
+      ): edicion is NonNullable<
+        typeof edicion
+      > =>
         edicion !== null
     );
 
+  // =====================================================
+  // PÁGINA
+  // =====================================================
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-black">
-      {/* FONDO */}
+
+      {/* =================================================
+          FONDO
+          ================================================= */}
+
       <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -139,14 +213,27 @@ export default async function GaleriaPage() {
         }}
       />
 
-      {/* OSCURECER FONDO */}
+      {/* =================================================
+          OSCURECER FONDO
+          ================================================= */}
+
       <div className="fixed inset-0 bg-black/65" />
 
-      {/* CONTENIDO */}
+      {/* =================================================
+          CONTENIDO
+          ================================================= */}
+
       <div className="relative z-10 min-h-screen">
+
+        {/* =================================================
+            ENCABEZADO
+            ================================================= */}
+
         <section className="border-b border-white/10 bg-black/20">
           <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
+
             <div className="text-center">
+
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-violet-400">
                 Recuerdos
               </p>
@@ -156,20 +243,31 @@ export default async function GaleriaPage() {
               </h1>
 
               <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-300 drop-shadow-lg">
-                Fotografías de cada edición de nuestros
-                eventos. Selecciona una edición para
-                explorar todos sus recuerdos.
+                Fotografías de cada edición de
+                nuestros eventos. Selecciona una
+                edición para explorar todos sus
+                recuerdos.
               </p>
+
             </div>
+
           </div>
         </section>
 
+        {/* =================================================
+            GALERÍAS
+            ================================================= */}
+
         <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+
           <GaleriaEdiciones
             ediciones={edicionesGaleria}
           />
+
         </section>
+
       </div>
+
     </main>
   );
 }
