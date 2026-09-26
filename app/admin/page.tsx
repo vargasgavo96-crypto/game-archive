@@ -322,8 +322,31 @@ export default function AdminPage() {
         error
       );
 
+      const errorSupabase = error as {
+        message?: string;
+        details?: string;
+        hint?: string;
+        code?: string;
+      };
+
       setError(
-        "No fue posible guardar los permisos."
+        [
+          "No fue posible guardar los permisos.",
+          errorSupabase.message
+            ? `Mensaje: ${errorSupabase.message}`
+            : "",
+          errorSupabase.details
+            ? `Detalle: ${errorSupabase.details}`
+            : "",
+          errorSupabase.hint
+            ? `Ayuda: ${errorSupabase.hint}`
+            : "",
+          errorSupabase.code
+            ? `Código: ${errorSupabase.code}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" | ")
       );
     } finally {
       setGuardando(false);
