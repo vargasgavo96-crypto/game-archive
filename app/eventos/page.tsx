@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import AdminEventControls from "@/app/components/AdminEventControls";
 
 type Evento = {
   id: number;
@@ -52,7 +53,9 @@ export default async function EventosPage() {
   ] = await Promise.all([
     supabase
       .from("eventos")
-      .select("id, nombre, descripcion, logo, slug")
+      .select(
+        "id, nombre, descripcion, logo, slug"
+      )
       .order("nombre"),
 
     supabase
@@ -66,11 +69,15 @@ export default async function EventosPage() {
 
     supabase
       .from("participaciones")
-      .select("edicion_id, persona_id, posicion"),
+      .select(
+        "edicion_id, persona_id, posicion"
+      ),
 
     supabase
       .from("premios")
-      .select("edicion_id, persona_id, nombre"),
+      .select(
+        "edicion_id, persona_id, nombre"
+      ),
   ]);
 
   if (
@@ -102,11 +109,16 @@ export default async function EventosPage() {
           <pre className="mt-6 overflow-auto rounded-2xl border border-red-500/20 bg-zinc-900 p-6 text-sm leading-7 text-red-300">
             {JSON.stringify(
               {
-                eventos: eventosError?.message ?? null,
-                ediciones: edicionesError?.message ?? null,
-                personas: personasError?.message ?? null,
-                participaciones: participacionesError?.message ?? null,
-                premios: premiosError?.message ?? null,
+                eventos:
+                  eventosError?.message ?? null,
+                ediciones:
+                  edicionesError?.message ?? null,
+                personas:
+                  personasError?.message ?? null,
+                participaciones:
+                  participacionesError?.message ?? null,
+                premios:
+                  premiosError?.message ?? null,
               },
               null,
               2
@@ -118,77 +130,127 @@ export default async function EventosPage() {
   }
 
   const listaEventos: Evento[] = eventos ?? [];
-  const listaEdiciones: Edicion[] = ediciones ?? [];
-  const listaPersonas: Persona[] = personas ?? [];
-  const listaParticipaciones: Participacion[] = participaciones ?? [];
-  const listaPremios: Premio[] = premios ?? [];
+  const listaEdiciones: Edicion[] =
+    ediciones ?? [];
+  const listaPersonas: Persona[] =
+    personas ?? [];
+  const listaParticipaciones: Participacion[] =
+    participaciones ?? [];
+  const listaPremios: Premio[] =
+    premios ?? [];
 
   const personaPorId = new Map(
-    listaPersonas.map((persona) => [persona.id, persona])
+    listaPersonas.map((persona) => [
+      persona.id,
+      persona,
+    ])
   );
 
   const premioPorEdicion = new Map(
-    listaPremios.map((premio) => [premio.edicion_id, premio])
+    listaPremios.map((premio) => [
+      premio.edicion_id,
+      premio,
+    ])
   );
 
-  const participacionGanadoraPorEdicion = new Map(
-    listaParticipaciones
-      .filter((participacion) => participacion.posicion === 1)
-      .map((participacion) => [
-        participacion.edicion_id,
-        participacion,
-      ])
-  );
+  const participacionGanadoraPorEdicion =
+    new Map(
+      listaParticipaciones
+        .filter(
+          (participacion) =>
+            participacion.posicion === 1
+        )
+        .map((participacion) => [
+          participacion.edicion_id,
+          participacion,
+        ])
+    );
 
   return (
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
-      style={{ backgroundImage: "url('/eventos/todos.jfif')" }}
+      style={{
+        backgroundImage:
+          "url('/eventos/todos.jfif')",
+      }}
     >
       <div className="fixed inset-0 z-0 bg-black/55" />
 
       <div className="relative z-10">
         {/* HEADER */}
+
         <section className="border-b border-white/10">
           <div className="mx-auto max-w-7xl px-6 py-24">
-            <p className="text-sm font-semibold uppercase tracking-[0.4em] text-violet-400">
-              Archivo
-            </p>
+            <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.4em] text-violet-400">
+                  Archivo
+                </p>
 
-            <h1 className="mt-4 text-6xl font-black md:text-8xl">
-              EVENTOS
-            </h1>
+                <h1 className="mt-4 text-6xl font-black md:text-8xl">
+                  EVENTOS
+                </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
-              Un recorrido por los eventos que hemos creado,
-              sus historias y todas las ediciones que han marcado
-              nuestra historia.
-            </p>
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
+                  Un recorrido por los eventos que hemos creado,
+                  sus historias y todas las ediciones que han marcado
+                  nuestra historia.
+                </p>
+              </div>
+
+              {/* CREAR EVENTO */}
+
+              <div className="shrink-0">
+                <AdminEventControls
+                  permiso="eventos.crear"
+                  href="/eventos/nuevo"
+                  label="Crear evento"
+                  icon="＋"
+                  variant="gold"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
         {/* EVENTOS */}
+
         <section className="mx-auto max-w-7xl px-6 py-24">
           <div className="grid gap-8 md:grid-cols-2">
             {listaEventos.map((evento) => {
-              const edicionesEvento = listaEdiciones
-                .filter((edicion) => edicion.evento_id === evento.id)
-                .sort((a, b) => b.fecha.localeCompare(a.fecha));
+              const edicionesEvento =
+                listaEdiciones
+                  .filter(
+                    (edicion) =>
+                      edicion.evento_id ===
+                      evento.id
+                  )
+                  .sort((a, b) =>
+                    b.fecha.localeCompare(
+                      a.fecha
+                    )
+                  );
 
-              const ultimaEdicion = edicionesEvento[0];
+              const ultimaEdicion =
+                edicionesEvento[0];
 
               const premio = ultimaEdicion
-                ? premioPorEdicion.get(ultimaEdicion.id)
-                : undefined;
-
-              const participacionGanadora = ultimaEdicion
-                ? participacionGanadoraPorEdicion.get(
+                ? premioPorEdicion.get(
                     ultimaEdicion.id
                   )
                 : undefined;
 
+              const participacionGanadora =
+                ultimaEdicion
+                  ? participacionGanadoraPorEdicion.get(
+                      ultimaEdicion.id
+                    )
+                  : undefined;
+
               const ganador = premio
-                ? personaPorId.get(premio.persona_id)
+                ? personaPorId.get(
+                    premio.persona_id
+                  )
                 : participacionGanadora
                   ? personaPorId.get(
                       participacionGanadora.persona_id
@@ -196,89 +258,118 @@ export default async function EventosPage() {
                   : undefined;
 
               return (
-                <a
+                <div
                   key={evento.id}
-                  href={`/eventos/${evento.slug}`}
                   className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
                 >
                   {/* LOGO */}
-                  <div className="flex h-80 items-center justify-center bg-black/40 p-12">
-                    {evento.logo ? (
-                      <img
-                        src={evento.logo}
-                        alt={`Logo ${evento.nombre}`}
-                        className="max-h-56 max-w-[80%] object-contain transition duration-500 group-hover:scale-110"
-                      />
-                    ) : (
-                      <span className="text-7xl">🎮</span>
-                    )}
-                  </div>
+
+                  <a
+                    href={`/eventos/${evento.slug}`}
+                    className="block"
+                  >
+                    <div className="flex h-80 items-center justify-center bg-black/40 p-12">
+                      {evento.logo ? (
+                        <img
+                          src={evento.logo}
+                          alt={`Logo ${evento.nombre}`}
+                          className="max-h-56 max-w-[80%] object-contain transition duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <span className="text-7xl">
+                          🎮
+                        </span>
+                      )}
+                    </div>
+                  </a>
 
                   {/* INFORMACIÓN */}
+
                   <div className="p-8">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
                         Evento
                       </p>
 
-                      <p className="text-sm text-zinc-500">
-                        {edicionesEvento.length}{" "}
-                        {edicionesEvento.length === 1
-                          ? "edición"
-                          : "ediciones"}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-zinc-500">
+                          {edicionesEvento.length}{" "}
+                          {edicionesEvento.length ===
+                          1
+                            ? "edición"
+                            : "ediciones"}
+                        </p>
+
+                        {/* EDITAR EVENTO */}
+
+                        <AdminEventControls
+                          permiso="eventos.editar"
+                          href={`/eventos/${evento.slug}/editar`}
+                          label="Editar"
+                          icon="✏️"
+                        />
+                      </div>
                     </div>
 
-                    <h2 className="mt-3 text-4xl font-bold">
-                      {evento.nombre}
-                    </h2>
+                    <a
+                      href={`/eventos/${evento.slug}`}
+                      className="block"
+                    >
+                      <h2 className="mt-3 text-4xl font-bold">
+                        {evento.nombre}
+                      </h2>
 
-                    <p className="mt-5 leading-7 text-zinc-300">
-                      {evento.descripcion}
-                    </p>
+                      <p className="mt-5 leading-7 text-zinc-300">
+                        {evento.descripcion}
+                      </p>
 
-                    {/* ÚLTIMA EDICIÓN */}
-                    {ultimaEdicion && (
-                      <div className="mt-8 border-t border-white/10 pt-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs uppercase tracking-widest text-zinc-500">
-                              Última edición
-                            </p>
+                      {/* ÚLTIMA EDICIÓN */}
 
-                            <p className="mt-1 text-lg font-semibold">
-                              {ultimaEdicion.año}
-                            </p>
-                          </div>
-
-                          {ganador && (
-                            <div className="text-right">
+                      {ultimaEdicion && (
+                        <div className="mt-8 border-t border-white/10 pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
                               <p className="text-xs uppercase tracking-widest text-zinc-500">
-                                Último campeón
+                                Última edición
                               </p>
 
-                              <p className="mt-1 font-semibold text-white">
-                                {nombreCorto(ganador.nombre)}
+                              <p className="mt-1 text-lg font-semibold">
+                                {ultimaEdicion.año}
                               </p>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
-                    <div className="mt-8 border-t border-white/10 pt-6">
-                      <span className="text-sm font-semibold transition group-hover:text-violet-400">
-                        EXPLORAR EVENTO →
-                      </span>
-                    </div>
+                            {ganador && (
+                              <div className="text-right">
+                                <p className="text-xs uppercase tracking-widest text-zinc-500">
+                                  Último campeón
+                                </p>
+
+                                <p className="mt-1 font-semibold text-white">
+                                  {nombreCorto(
+                                    ganador.nombre
+                                  )}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-8 border-t border-white/10 pt-6">
+                        <span className="text-sm font-semibold transition group-hover:text-violet-400">
+                          EXPLORAR EVENTO →
+                        </span>
+                      </div>
+                    </a>
                   </div>
-                </a>
+                </div>
               );
             })}
           </div>
         </section>
 
         {/* FOOTER */}
+
         <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
           <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
             <p>THE GAME ARCHIVE</p>

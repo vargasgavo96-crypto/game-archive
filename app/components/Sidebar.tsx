@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Evento = {
@@ -23,11 +22,16 @@ const enlacesPrincipales = [
 ];
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const [rutaActual, setRutaActual] = useState("");
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [sesionActiva, setSesionActiva] = useState(false);
+  const [rutaLista, setRutaLista] = useState(false);
 
   useEffect(() => {
+    setRutaActual(window.location.pathname);
+    setRutaLista(true);
+
     async function cargarEventos() {
       const { data, error } = await supabase
         .from("eventos")
@@ -39,23 +43,73 @@ export default function Sidebar() {
           "Error cargando eventos:",
           error
         );
-        return;
+      } else {
+        setEventos(data ?? []);
       }
 
-      setEventos(data ?? []);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setSesionActiva(!!session);
     }
 
     cargarEventos();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSesionActiva(!!session);
+      }
+    );
+
+    function actualizarRuta() {
+      setRutaActual(window.location.pathname);
+      setMenuAbierto(false);
+    }
+
+    window.addEventListener(
+      "popstate",
+      actualizarRuta
+    );
+
+    return () => {
+      subscription.unsubscribe();
+
+      window.removeEventListener(
+        "popstate",
+        actualizarRuta
+      );
+    };
   }, []);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMenuAbierto(false);
-  }, [pathname]);
-
-  function navegar() {
+  function navegar(href: string) {
+    setRutaActual(href);
     setMenuAbierto(false);
   }
+
+  function esRutaActiva(href: string) {
+    if (!rutaLista) {
+      return false;
+    }
+
+    if (href === "/") {
+      return rutaActual === "/";
+    }
+
+    return (
+      rutaActual === href ||
+      rutaActual.startsWith(`${href}/`)
+    );
+  }
+
+  const hrefAdministracion = sesionActiva
+    ? "/admin"
+    : "/login";
+
+  const activoAdministracion =
+    esRutaActiva(hrefAdministracion);
 
   return (
     <>
@@ -64,7 +118,7 @@ export default function Sidebar() {
         <div className="border-b border-white/10 px-6 py-6">
           <Link
             href="/"
-            onClick={navegar}
+            onClick={() => navegar("/")}
             className="block"
           >
             <p className="text-xs font-semibold tracking-[0.35em] text-zinc-500">
@@ -77,28 +131,24 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        <nav
-          className="flex-1 overflow-y-auto px-4 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{
-            msOverflowStyle: "none",
-          }}
-        >
+        <nav className="flex-1 overflow-y-auto px-4 py-6">
           <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
             Navegación
           </p>
 
           <div className="space-y-1">
             {enlacesPrincipales.map((enlace) => {
-              const activo =
-                enlace.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(enlace.href);
+              const activo = esRutaActiva(
+                enlace.href
+              );
 
               return (
                 <Link
                   key={enlace.href}
                   href={enlace.href}
-                  onClick={navegar}
+                  onClick={() =>
+                    navegar(enlace.href)
+                  }
                   className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
                     activo
                       ? "bg-violet-600/20 text-white"
@@ -124,15 +174,16 @@ export default function Sidebar() {
           <div className="space-y-1">
             {eventos.map((evento) => {
               const href = `/eventos/${evento.slug}`;
-
               const activo =
-                pathname.startsWith(href);
+                esRutaActiva(href);
 
               return (
                 <Link
                   key={evento.id}
                   href={href}
-                  onClick={navegar}
+                  onClick={() =>
+                    navegar(href)
+                  }
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                     activo
                       ? "bg-violet-600/20 text-white"
@@ -161,6 +212,37 @@ export default function Sidebar() {
               );
             })}
           </div>
+
+          {/* ACCESO ADMINISTRATIVO */}
+          <div className="my-7 border-t border-white/10" />
+
+          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+            Administración
+          </p>
+
+          <Link
+            href={hrefAdministracion}
+            onClick={() =>
+              navegar(hrefAdministracion)
+            }
+            className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+              activoAdministracion
+                ? sesionActiva
+                  ? "bg-[#d4af37]/10 text-[#d4af37]"
+                  : "bg-violet-600/20 text-white"
+                : "text-zinc-400 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <span className="w-6 text-center text-base">
+              {sesionActiva ? "👑" : "🔐"}
+            </span>
+
+            <span>
+              {sesionActiva
+                ? "Administración"
+                : "Iniciar sesión"}
+            </span>
+          </Link>
         </nav>
 
         <div className="border-t border-white/10 px-6 py-5">
@@ -187,22 +269,19 @@ export default function Sidebar() {
       {menuAbierto && (
         <div className="fixed inset-0 z-[70] lg:hidden">
           <button
-            onClick={() => setMenuAbierto(false)}
+            onClick={() =>
+              setMenuAbierto(false)
+            }
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             aria-label="Cerrar menú"
           />
 
-          <aside
-            className="relative h-full w-[85%] max-w-sm overflow-y-auto border-r border-white/10 bg-zinc-950 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            style={{
-              msOverflowStyle: "none",
-            }}
-          >
+          <aside className="relative h-full w-[85%] max-w-sm overflow-y-auto border-r border-white/10 bg-zinc-950 shadow-2xl">
             {/* CABECERA */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
               <Link
                 href="/"
-                onClick={navegar}
+                onClick={() => navegar("/")}
                 className="block"
               >
                 <p className="text-xs font-semibold tracking-[0.35em] text-zinc-500">
@@ -215,7 +294,9 @@ export default function Sidebar() {
               </Link>
 
               <button
-                onClick={() => setMenuAbierto(false)}
+                onClick={() =>
+                  setMenuAbierto(false)
+                }
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-xl text-zinc-300 transition hover:bg-white/10 hover:text-white"
                 aria-label="Cerrar menú"
               >
@@ -230,33 +311,39 @@ export default function Sidebar() {
               </p>
 
               <div className="space-y-1">
-                {enlacesPrincipales.map((enlace) => {
-                  const activo =
-                    enlace.href === "/"
-                      ? pathname === "/"
-                      : pathname.startsWith(
-                          enlace.href
-                        );
+                {enlacesPrincipales.map(
+                  (enlace) => {
+                    const activo =
+                      esRutaActiva(
+                        enlace.href
+                      );
 
-                  return (
-                    <Link
-                      key={enlace.href}
-                      href={enlace.href}
-                      onClick={navegar}
-                      className={`flex items-center gap-4 rounded-xl px-4 py-4 text-base font-medium transition ${
-                        activo
-                          ? "bg-violet-600/20 text-white"
-                          : "text-zinc-400 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <span className="w-7 text-center text-lg">
-                        {enlace.icono}
-                      </span>
+                    return (
+                      <Link
+                        key={enlace.href}
+                        href={enlace.href}
+                        onClick={() =>
+                          navegar(
+                            enlace.href
+                          )
+                        }
+                        className={`flex items-center gap-4 rounded-xl px-4 py-4 text-base font-medium transition ${
+                          activo
+                            ? "bg-violet-600/20 text-white"
+                            : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <span className="w-7 text-center text-lg">
+                          {enlace.icono}
+                        </span>
 
-                      <span>{enlace.nombre}</span>
-                    </Link>
-                  );
-                })}
+                        <span>
+                          {enlace.nombre}
+                        </span>
+                      </Link>
+                    );
+                  }
+                )}
               </div>
 
               <div className="my-7 border-t border-white/10" />
@@ -268,15 +355,16 @@ export default function Sidebar() {
               <div className="space-y-1">
                 {eventos.map((evento) => {
                   const href = `/eventos/${evento.slug}`;
-
                   const activo =
-                    pathname.startsWith(href);
+                    esRutaActiva(href);
 
                   return (
                     <Link
                       key={evento.id}
                       href={href}
-                      onClick={navegar}
+                      onClick={() =>
+                        navegar(href)
+                      }
                       className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition ${
                         activo
                           ? "bg-violet-600/20 text-white"
@@ -305,6 +393,41 @@ export default function Sidebar() {
                   );
                 })}
               </div>
+
+              {/* ACCESO ADMINISTRATIVO MÓVIL */}
+              <div className="my-7 border-t border-white/10" />
+
+              <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+                Administración
+              </p>
+
+              <Link
+                href={hrefAdministracion}
+                onClick={() =>
+                  navegar(
+                    hrefAdministracion
+                  )
+                }
+                className={`flex items-center gap-4 rounded-xl px-4 py-4 text-base font-medium transition ${
+                  activoAdministracion
+                    ? sesionActiva
+                      ? "bg-[#d4af37]/10 text-[#d4af37]"
+                      : "bg-violet-600/20 text-white"
+                    : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <span className="w-7 text-center text-lg">
+                  {sesionActiva
+                    ? "👑"
+                    : "🔐"}
+                </span>
+
+                <span>
+                  {sesionActiva
+                    ? "Administración"
+                    : "Iniciar sesión"}
+                </span>
+              </Link>
             </nav>
 
             {/* PIE */}

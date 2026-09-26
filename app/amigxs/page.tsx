@@ -203,6 +203,89 @@ export default function AmigxsPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
 
+  const [usuarioAutenticado, setUsuarioAutenticado] =
+    useState(false);
+  const [esGonza, setEsGonza] = useState(false);
+
+  const [editandoPersona, setEditandoPersona] =
+    useState(false);
+  const [guardandoPersona, setGuardandoPersona] =
+    useState(false);
+  const [mensajeEdicion, setMensajeEdicion] =
+    useState("");
+  const [errorEdicion, setErrorEdicion] =
+    useState("");
+
+  const [formNombre, setFormNombre] = useState("");
+  const [formApodo, setFormApodo] = useState("");
+  const [formCumpleaños, setFormCumpleaños] =
+    useState("");
+  const [formSigno, setFormSigno] = useState("");
+  const [formBiografia, setFormBiografia] =
+    useState("");
+  const [formEtiquetas, setFormEtiquetas] =
+    useState("");
+
+  const [nuevaFoto, setNuevaFoto] =
+    useState<File | null>(null);
+  const [previewNuevaFoto, setPreviewNuevaFoto] =
+    useState<string | null>(null);
+
+  useEffect(() => {
+    async function comprobarSesion() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      setUsuarioAutenticado(!!user);
+
+      if (!user) {
+        setEsGonza(false);
+        return;
+      }
+
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("usuario, nombre, rol, activo")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!perfil || perfil.activo === false) {
+        setEsGonza(false);
+        return;
+      }
+
+      const identidad = normalizarTexto(
+        `${perfil.usuario ?? ""} ${perfil.nombre ?? ""}`
+      );
+
+      setEsGonza(
+        identidad.includes("gonza") ||
+          identidad.includes("gonzalo")
+      );
+    }
+
+    comprobarSesion();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUsuarioAutenticado(!!session?.user);
+
+        if (!session?.user) {
+          setEsGonza(false);
+        } else {
+          comprobarSesion();
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     async function cargarDatos() {
       const [
@@ -478,6 +561,262 @@ export default function AmigxsPage() {
     cargarDatos();
   }, []);
 
+  function abrirEdicionPersona() {
+    if (!usuarioAutenticado || !personaSeleccionada) {
+      return;
+    }
+
+    setFormNombre(personaSeleccionada.nombre ?? "");
+    setFormApodo(personaSeleccionada.apodo ?? "");
+    setFormCumpleaños(
+      personaSeleccionada.cumpleaños ?? ""
+    );
+    setFormSigno(personaSeleccionada.signo ?? "");
+    setFormBiografia(
+      personaSeleccionada.biografia ?? ""
+    );
+    setFormEtiquetas(
+      (personaSeleccionada.etiquetas ?? []).join(", ")
+    );
+
+    setNuevaFoto(null);
+    setPreviewNuevaFoto(null);
+    setMensajeEdicion("");
+    setErrorEdicion("");
+    setEditandoPersona(true);
+  }
+
+  function cerrarEdicionPersona() {
+    if (guardandoPersona) {
+      return;
+    }
+
+    setEditandoPersona(false);
+    setNuevaFoto(null);
+
+    if (previewNuevaFoto) {
+      URL.revokeObjectURL(previewNuevaFoto);
+    }
+
+    setPreviewNuevaFoto(null);
+    setMensajeEdicion("");
+    setErrorEdicion("");
+  }
+
+  function seleccionarNuevaFoto(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const archivo = event.target.files?.[0] ?? null;
+
+    setNuevaFoto(archivo);
+
+    if (previewNuevaFoto) {
+      URL.revokeObjectURL(previewNuevaFoto);
+    }
+
+    if (archivo) {
+      setPreviewNuevaFoto(
+        URL.createObjectURL(archivo)
+      );
+    } else {
+      setPreviewNuevaFoto(null);
+    }
+  }
+
+  function obtenerRutaStorageAmigx(
+    url: string | null
+  ) {
+    if (!url) {
+      return null;
+    }
+
+    const marcador =
+      "/storage/v1/object/public/eventos-fotos/";
+
+    const posicion = url.indexOf(marcador);
+
+    if (posicion === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(
+      url.substring(
+        posicion + marcador.length
+      )
+    );
+  }
+
+  async function guardarPersona() {
+    if (
+      !usuarioAutenticado ||
+      !personaSeleccionada
+    ) {
+      setErrorEdicion(
+        "Debes iniciar sesión para editar perfiles."
+      );
+      return;
+    }
+
+    if (!formNombre.trim()) {
+      setErrorEdicion(
+        "El nombre no puede quedar vacío."
+      );
+      return;
+    }
+
+    setGuardandoPersona(true);
+    setMensajeEdicion("");
+    setErrorEdicion("");
+
+    let nuevaImagenUrl =
+      personaSeleccionada.imagen;
+
+    let nuevaRutaStorage: string | null = null;
+
+    try {
+      if (nuevaFoto) {
+        const extension =
+          nuevaFoto.name
+            .split(".")
+            .pop()
+            ?.toLowerCase() || "jpg";
+
+        nuevaRutaStorage =
+          `amigxs/${personaSeleccionada.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+        const { error: uploadError } =
+          await supabase.storage
+            .from("eventos-fotos")
+            .upload(
+              nuevaRutaStorage,
+              nuevaFoto,
+              {
+                cacheControl: "3600",
+                upsert: false,
+              }
+            );
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: publicUrlData } =
+          supabase.storage
+            .from("eventos-fotos")
+            .getPublicUrl(
+              nuevaRutaStorage
+            );
+
+        nuevaImagenUrl =
+          publicUrlData.publicUrl;
+      }
+
+      const datosActualizacion: {
+        nombre: string;
+        apodo: string | null;
+        cumpleaños: string | null;
+        signo: string | null;
+        biografia: string | null;
+        etiquetas?: string[];
+        imagen: string | null;
+      } = {
+        nombre: formNombre.trim(),
+        apodo:
+          formApodo.trim() || null,
+        cumpleaños:
+          formCumpleaños.trim() || null,
+        signo:
+          formSigno.trim() || null,
+        biografia:
+          formBiografia.trim() || null,
+        imagen: nuevaImagenUrl ?? null,
+      };
+
+      if (esGonza) {
+        datosActualizacion.etiquetas =
+          formEtiquetas
+            .split(",")
+            .map((etiqueta) =>
+              etiqueta.trim()
+            )
+            .filter(Boolean);
+      }
+
+      const {
+        data: personaActualizada,
+        error: updateError,
+      } = await supabase
+        .from("personas")
+        .update(datosActualizacion)
+        .eq("id", personaSeleccionada.id)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        if (nuevaRutaStorage) {
+          await supabase.storage
+            .from("eventos-fotos")
+            .remove([nuevaRutaStorage]);
+        }
+
+        throw updateError;
+      }
+
+      if (nuevaFoto) {
+        const rutaAnterior =
+          obtenerRutaStorageAmigx(
+            personaSeleccionada.imagen
+          );
+
+        if (rutaAnterior) {
+          await supabase.storage
+            .from("eventos-fotos")
+            .remove([rutaAnterior]);
+        }
+      }
+
+      const personaNueva =
+        personaActualizada as Persona;
+
+      setPersonas((actuales) =>
+        actuales.map((persona) =>
+          persona.id === personaNueva.id
+            ? personaNueva
+            : persona
+        )
+      );
+
+      setPersonaSeleccionada(
+        personaNueva
+      );
+
+      setMensajeEdicion(
+        "Los cambios se guardaron correctamente."
+      );
+
+      setNuevaFoto(null);
+
+      if (previewNuevaFoto) {
+        URL.revokeObjectURL(
+          previewNuevaFoto
+        );
+      }
+
+      setPreviewNuevaFoto(null);
+    } catch (error) {
+      console.error(
+        "Error actualizando persona:",
+        error
+      );
+
+      setErrorEdicion(
+        "No se pudieron guardar los cambios."
+      );
+    } finally {
+      setGuardandoPersona(false);
+    }
+  }
+
   useEffect(() => {
     function manejarTecla(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -644,7 +983,9 @@ export default function AmigxsPage() {
                 <div className="grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {personas.map((amigx) => {
                     const imagenAmigx =
-                      fotosAmigxs[amigx.id];
+                      amigx.imagen ??
+                      fotosAmigxs[amigx.id] ??
+                      null;
 
                     const premiosPersona =
                       hallOfFame[amigx.id] ?? [];
@@ -839,26 +1180,43 @@ export default function AmigxsPage() {
             aria-label={`Información de ${personaSeleccionada.nombre}`}
             className="relative flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 shadow-2xl shadow-black/60 lg:flex-row"
           >
-            {/* CERRAR */}
-            <button
-              type="button"
-              onClick={() =>
-                setPersonaSeleccionada(null)
-              }
-              aria-label="Cerrar"
-              className="absolute right-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/60 text-lg text-zinc-300 backdrop-blur transition hover:border-white/20 hover:bg-black hover:text-white"
-            >
-              ×
-            </button>
+            {/* ACCIONES */}
+            <div className="absolute right-5 top-5 z-20 flex items-center gap-2">
+              {usuarioAutenticado && (
+                <button
+                  type="button"
+                  onClick={abrirEdicionPersona}
+                  aria-label="Editar perfil"
+                  className="flex h-10 items-center gap-2 rounded-full border border-violet-400/30 bg-violet-950/70 px-4 text-xs font-black uppercase tracking-wide text-violet-200 backdrop-blur transition hover:border-violet-300/50 hover:bg-violet-900/80 hover:text-white"
+                >
+                  ✎ <span className="hidden sm:inline">Editar</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPersonaSeleccionada(null)
+                }
+                aria-label="Cerrar"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/60 text-lg text-zinc-300 backdrop-blur transition hover:border-white/20 hover:bg-black hover:text-white"
+              >
+                ×
+              </button>
+            </div>
 
             {/* FOTO */}
             <div className="relative h-72 shrink-0 bg-zinc-900 sm:h-96 lg:h-auto lg:w-[45%]">
-              {fotosAmigxs[personaSeleccionada.id] ? (
+              {(personaSeleccionada.imagen ??
+                fotosAmigxs[
+                  personaSeleccionada.id
+                ]) ? (
                 <img
                   src={
+                    personaSeleccionada.imagen ??
                     fotosAmigxs[
                       personaSeleccionada.id
-                    ]
+                    ]!
                   }
                   alt={personaSeleccionada.nombre}
                   className="h-full w-full object-cover"
@@ -1093,6 +1451,268 @@ export default function AmigxsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MENÚ DE EDICIÓN */}
+      {editandoPersona && personaSeleccionada && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md lg:left-72"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !guardandoPersona
+            ) {
+              cerrarEdicionPersona();
+            }
+          }}
+        >
+          <div className="relative max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 shadow-2xl shadow-black/70">
+            <div className="flex items-center justify-between border-b border-white/10 bg-black/50 px-6 py-5 md:px-8">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.35em] text-violet-400">
+                  Administración
+                </p>
+
+                <h3 className="mt-2 text-2xl font-black text-white md:text-3xl">
+                  EDITAR PERFIL
+                </h3>
+
+                <p className="mt-1 text-sm text-zinc-500">
+                  {personaSeleccionada.nombre}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={cerrarEdicionPersona}
+                disabled={guardandoPersona}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xl text-zinc-300 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="max-h-[calc(92vh-105px)] overflow-y-auto p-6 md:p-8">
+              <div className="grid gap-8 md:grid-cols-[220px_1fr]">
+                {/* FOTO */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600">
+                    Fotografía
+                  </p>
+
+                  <div className="mt-4 aspect-[3/4] overflow-hidden rounded-2xl border border-white/10 bg-zinc-900">
+                    {previewNuevaFoto ? (
+                      <img
+                        src={previewNuevaFoto}
+                        alt="Nueva fotografía"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (personaSeleccionada.imagen ??
+                        fotosAmigxs[
+                          personaSeleccionada.id
+                        ]) ? (
+                      <img
+                        src={
+                          personaSeleccionada.imagen ??
+                          fotosAmigxs[
+                            personaSeleccionada.id
+                          ]!
+                        }
+                        alt={personaSeleccionada.nombre}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <span className="text-6xl opacity-10">
+                          👤
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="mt-4 flex cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold uppercase tracking-wide text-zinc-300 transition hover:border-violet-400/30 hover:bg-violet-950/20 hover:text-white">
+                    {nuevaFoto
+                      ? "Cambiar fotografía"
+                      : "Elegir fotografía"}
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={seleccionarNuevaFoto}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {nuevaFoto && (
+                    <p className="mt-2 break-all text-center text-xs text-zinc-600">
+                      {nuevaFoto.name}
+                    </p>
+                  )}
+                </div>
+
+                {/* CAMPOS */}
+                <div className="space-y-5">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600">
+                      Nombre
+                    </label>
+
+                    <input
+                      value={formNombre}
+                      onChange={(event) =>
+                        setFormNombre(
+                          event.target.value
+                        )
+                      }
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-violet-500/50 focus:bg-white/[0.07]"
+                      placeholder="Nombre completo"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600">
+                      Apodo
+                    </label>
+
+                    <input
+                      value={formApodo}
+                      onChange={(event) =>
+                        setFormApodo(
+                          event.target.value
+                        )
+                      }
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-violet-500/50 focus:bg-white/[0.07]"
+                      placeholder="Apodo"
+                    />
+                  </div>
+
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600">
+                        Cumpleaños
+                      </label>
+
+                      <input
+                        value={formCumpleaños}
+                        onChange={(event) =>
+                          setFormCumpleaños(
+                            event.target.value
+                          )
+                        }
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-violet-500/50 focus:bg-white/[0.07]"
+                        placeholder="Ej: 12 de mayo"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600">
+                        Signo
+                      </label>
+
+                      <input
+                        value={formSigno}
+                        onChange={(event) =>
+                          setFormSigno(
+                            event.target.value
+                          )
+                        }
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-violet-500/50 focus:bg-white/[0.07]"
+                        placeholder="Ej: Escorpio"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600">
+                      Biografía
+                    </label>
+
+                    <textarea
+                      value={formBiografia}
+                      onChange={(event) =>
+                        setFormBiografia(
+                          event.target.value
+                        )
+                      }
+                      rows={6}
+                      className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-zinc-700 focus:border-violet-500/50 focus:bg-white/[0.07]"
+                      placeholder="Escribe la historia de esta persona..."
+                    />
+                  </div>
+
+                  {esGonza && (
+                    <div className="rounded-2xl border border-amber-400/20 bg-amber-950/10 p-5">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <label className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400">
+                            Etiquetas
+                          </label>
+
+                          <p className="mt-1 text-xs text-zinc-600">
+                            Solo Gonza puede modificar las etiquetas.
+                          </p>
+                        </div>
+
+                        <span className="rounded-full border border-amber-400/20 bg-amber-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                          Privado
+                        </span>
+                      </div>
+
+                      <input
+                        value={formEtiquetas}
+                        onChange={(event) =>
+                          setFormEtiquetas(
+                            event.target.value
+                          )
+                        }
+                        className="mt-4 w-full rounded-xl border border-amber-400/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-400/40"
+                        placeholder="Ej: organizador, campeón 2025, creador"
+                      />
+
+                      <p className="mt-2 text-xs text-zinc-600">
+                        Separa las etiquetas con comas.
+                      </p>
+                    </div>
+                  )}
+
+                  {mensajeEdicion && (
+                    <div className="rounded-xl border border-emerald-400/20 bg-emerald-950/20 px-4 py-3 text-sm font-semibold text-emerald-400">
+                      {mensajeEdicion}
+                    </div>
+                  )}
+
+                  {errorEdicion && (
+                    <div className="rounded-xl border border-red-400/20 bg-red-950/20 px-4 py-3 text-sm font-semibold text-red-400">
+                      {errorEdicion}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={cerrarEdicionPersona}
+                      disabled={guardandoPersona}
+                      className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-zinc-300 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={guardarPersona}
+                      disabled={guardandoPersona}
+                      className="rounded-xl bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {guardandoPersona
+                        ? "GUARDANDO..."
+                        : "GUARDAR CAMBIOS"}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

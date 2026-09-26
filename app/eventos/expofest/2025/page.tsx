@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import GaleriaFotos from "@/app/components/GaleriaFotos";
+import EditarTextoEdicion from "@/app/components/EditarTextoEdicion";
 
 type Evento = {
   id: number;
@@ -14,6 +15,7 @@ type Edicion = {
   evento_id: number;
   año: string;
   fecha: string;
+  contenido: Record<string, unknown> | null;
 };
 
 type Persona = {
@@ -42,30 +44,37 @@ type Participacion = {
 const presentaciones = [
   {
     nombre: "Javier",
+    campo: "presentacion_javier",
     tema: "Su animé favorito",
   },
   {
     nombre: "Ricardo",
+    campo: "presentacion_ricardo",
     tema: "El niño interior dentro del animé",
   },
   {
     nombre: "Fefi",
+    campo: "presentacion_fefi",
     tema: "2 verdades y 1 mentira sobre ella",
   },
   {
     nombre: "Camilo",
+    campo: "presentacion_camilo",
     tema: "¿Cuánto lo conocen?",
   },
   {
     nombre: "Gonza",
+    campo: "presentacion_gonza",
     tema: "El chisme de cuando fue parte de la FEUTFSM",
   },
   {
     nombre: "Leslie",
+    campo: "presentacion_leslie",
     tema: "¿Qué tan similar es Bob Esponja a las esponjas marinas?",
   },
   {
     nombre: "Seba",
+    campo: "presentacion_seba",
     tema: "La historia de asesinos seriales",
   },
 ];
@@ -78,6 +87,20 @@ function nombreCorto(nombre: string) {
   }
 
   return `${partes[0]} ${partes[partes.length - 2]}`;
+}
+
+function obtenerContenido(
+  contenido: Record<string, unknown> | null,
+  campo: string,
+  fallback: string
+) {
+  const valor = contenido?.[campo];
+
+  if (typeof valor === "string" && valor.trim() !== "") {
+    return valor;
+  }
+
+  return fallback;
 }
 
 export default async function Expofest2025Page() {
@@ -105,14 +128,14 @@ export default async function Expofest2025Page() {
     );
   }
 
-  const { data: edicion, error: edicionError } = await supabase
+  const { data: edicionData, error: edicionError } = await supabase
     .from("ediciones")
     .select("*")
     .eq("evento_id", evento.id)
     .eq("año", "2025")
     .single();
 
-  if (edicionError || !edicion) {
+  if (edicionError || !edicionData) {
     console.error("Error cargando edición:", edicionError);
 
     return (
@@ -129,6 +152,15 @@ export default async function Expofest2025Page() {
       </main>
     );
   }
+
+  const edicion = edicionData as Edicion;
+
+  const contenido =
+    edicion.contenido &&
+    typeof edicion.contenido === "object" &&
+    !Array.isArray(edicion.contenido)
+      ? edicion.contenido
+      : {};
 
   const { data: premio, error: premioError } = await supabase
     .from("premios")
@@ -187,15 +219,124 @@ export default async function Expofest2025Page() {
     ? nombreCorto(ganadora.nombre)
     : "Leslie Novoa";
 
-  /*
-   * La imagen oficial de la campeona pertenece al premio.
-   * Si por alguna razón el premio no tiene imagen,
-   * usamos la imagen de la persona como respaldo.
-   */
   const imagenGanadora =
     premio?.imagen ??
     ganadora?.imagen ??
     "/campeones/leslie2025.png";
+
+  const heroDescripcion = obtenerContenido(
+    contenido,
+    "hero_descripcion",
+    "Una instancia para compartir, presentar y conocernos mejor a través de nuestras propias historias e intereses."
+  );
+
+  const historia1 = obtenerContenido(
+    contenido,
+    "historia_1",
+    "La primera edición de Expofest surgió gracias a TikTok, donde una actividad recomendaba realizar presentaciones sobre diferentes temáticas."
+  );
+
+  const historia2 = obtenerContenido(
+    contenido,
+    "historia_2",
+    "Después de mucho posponerlo, finalmente llegamos a noviembre de 2025 y decidimos realizar la primera edición."
+  );
+
+  const historia3 = obtenerContenido(
+    contenido,
+    "historia_3",
+    "En esta oportunidad la temática era completamente libre, por lo que cada participante pudo elegir aquello que quisiera compartir con el grupo."
+  );
+
+  const presentacionesDescripcion = obtenerContenido(
+    contenido,
+    "presentaciones_descripcion",
+    "Siete presentaciones, siete temas completamente diferentes y una noche para compartir nuestros intereses, historias y experiencias."
+  );
+
+  const temaTrascendioTitulo = obtenerContenido(
+    contenido,
+    "tema_trascendio_titulo",
+    "¿Qué tan similar es Bob Esponja a las esponjas marinas?"
+  );
+
+  const temaTrascendioDescripcion1 = obtenerContenido(
+    contenido,
+    "tema_trascendio_descripcion_1",
+    "Esta edición no tuvo notas ni votaciones. Sin embargo, hubo una presentación que trascendió y que terminó cambiando un poco la dinámica del grupo."
+  );
+
+  const temaTrascendioDescripcion2 = obtenerContenido(
+    contenido,
+    "tema_trascendio_descripcion_2",
+    "A mi parecer, la presentación de Leslie nos enseñó algo que nunca podremos olvidar: ya no podemos despejar a Bob Esponja de Leslie."
+  );
+
+  const reconocimientoDescripcion = obtenerContenido(
+    contenido,
+    "reconocimiento_descripcion",
+    "Por una presentación que dejó huella."
+  );
+
+  const momentoFefiTitulo = obtenerContenido(
+    contenido,
+    "momento_fefi_titulo",
+    "Fefi y su mala suerte"
+  );
+
+  const momentoFefiDescripcion = obtenerContenido(
+    contenido,
+    "momento_fefi_descripcion",
+    "Fefi nos contó algunas de sus historias más increíbles, incluyendo cómo una vez quedó atrapada en medio de una balacera y cómo terminó rompiendo una puerta de vidrio con el cuerpo."
+  );
+
+  const momentoCamiloTitulo = obtenerContenido(
+    contenido,
+    "momento_camilo_titulo",
+    "Camilo y sus mascotas"
+  );
+
+  const momentoCamiloDescripcion = obtenerContenido(
+    contenido,
+    "momento_camilo_descripcion",
+    "Camilo nos contó sobre sus mascotas y también descubrimos que conoce a Angelo desde hace mucho tiempo."
+  );
+
+  const momentoJavierTitulo = obtenerContenido(
+    contenido,
+    "momento_javier_titulo",
+    "Houseki no Kuni"
+  );
+
+  const momentoJavierDescripcion = obtenerContenido(
+    contenido,
+    "momento_javier_descripcion",
+    "Javier nos emocionó con su presentación sobre Houseki no Kuni. La presentación fue tan especial que incluso recibió una muñeca relacionada con la serie."
+  );
+
+  const momentoGeneralTitulo = obtenerContenido(
+    contenido,
+    "momento_general_titulo",
+    "Un viaje por todos los temas"
+  );
+
+  const momentoGeneralDescripcion = obtenerContenido(
+    contenido,
+    "momento_general_descripcion",
+    "Ricardo nos hizo volver a la infancia, para que después Gonza nos entregara su dosis de chisme sobre su paso por la FEUTFSM, antes de finalizar con las historias de asesinos seriales de Seba."
+  );
+
+  const ganadoraTema = obtenerContenido(
+    contenido,
+    "ganadora_tema",
+    "¿Qué tan similar es Bob Esponja a las esponjas marinas?"
+  );
+
+  const ganadoraDescripcion = obtenerContenido(
+    contenido,
+    "ganadora_descripcion",
+    "Una presentación que trascendió y que terminó convirtiéndose en uno de los recuerdos más característicos de esta edición."
+  );
 
   return (
     <main
@@ -230,11 +371,15 @@ export default async function Expofest2025Page() {
               2025
             </p>
 
-            <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
-              Una instancia para compartir, presentar y
-              conocernos mejor a través de nuestras propias
-              historias e intereses.
-            </p>
+            <div className="relative mx-auto mt-8 w-full max-w-3xl">
+              <EditarTextoEdicion
+                valor={heroDescripcion}
+                campo="hero_descripcion"
+                edicionId={edicion.id}
+                multilinea
+                claseTexto="text-lg leading-8 text-zinc-300"
+              />
+            </div>
           </div>
         </section>
 
@@ -249,23 +394,29 @@ export default async function Expofest2025Page() {
           </h2>
 
           <div className="mt-8 space-y-6 text-lg leading-8 text-zinc-300">
-            <p>
-              La primera edición de Expofest surgió gracias a
-              TikTok, donde una actividad recomendaba realizar
-              presentaciones sobre diferentes temáticas.
-            </p>
+            <EditarTextoEdicion
+              valor={historia1}
+              campo="historia_1"
+              edicionId={edicion.id}
+              multilinea
+              claseTexto="text-lg leading-8 text-zinc-300"
+            />
 
-            <p>
-              Después de mucho posponerlo, finalmente llegamos
-              a noviembre de 2025 y decidimos realizar la primera
-              edición.
-            </p>
+            <EditarTextoEdicion
+              valor={historia2}
+              campo="historia_2"
+              edicionId={edicion.id}
+              multilinea
+              claseTexto="text-lg leading-8 text-zinc-300"
+            />
 
-            <p>
-              En esta oportunidad la temática era completamente
-              libre, por lo que cada participante pudo elegir
-              aquello que quisiera compartir con el grupo.
-            </p>
+            <EditarTextoEdicion
+              valor={historia3}
+              campo="historia_3"
+              edicionId={edicion.id}
+              multilinea
+              claseTexto="text-lg leading-8 text-zinc-300"
+            />
           </div>
         </section>
 
@@ -281,44 +432,62 @@ export default async function Expofest2025Page() {
                 LAS PRESENTACIONES
               </h2>
 
-              <p className="mx-auto mt-5 max-w-2xl text-zinc-300">
-                Siete presentaciones, siete temas completamente
-                diferentes y una noche para compartir nuestros
-                intereses, historias y experiencias.
-              </p>
+              <div className="relative mx-auto mt-5 max-w-2xl">
+                <EditarTextoEdicion
+                  valor={presentacionesDescripcion}
+                  campo="presentaciones_descripcion"
+                  edicionId={edicion.id}
+                  multilinea
+                  claseTexto="text-zinc-300"
+                />
+              </div>
             </div>
 
             <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {presentaciones.map((presentacion, index) => (
-                <div
-                  key={presentacion.nombre}
-                  className="group rounded-3xl border border-white/10 bg-zinc-900/90 p-7 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-violet-400">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
+              {presentaciones.map((presentacion, index) => {
+                const tema = obtenerContenido(
+                  contenido,
+                  presentacion.campo,
+                  presentacion.tema
+                );
 
-                    <span className="text-xs uppercase tracking-widest text-zinc-600">
-                      PRESENTACIÓN
-                    </span>
+                return (
+                  <div
+                    key={presentacion.nombre}
+                    className="group rounded-3xl border border-white/10 bg-zinc-900/90 p-7 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-violet-400">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+
+                      <span className="text-xs uppercase tracking-widest text-zinc-600">
+                        PRESENTACIÓN
+                      </span>
+                    </div>
+
+                    <h3 className="mt-8 text-3xl font-black">
+                      {presentacion.nombre}
+                    </h3>
+
+                    <div className="mt-5 border-t border-white/10 pt-5">
+                      <p className="text-xs uppercase tracking-widest text-zinc-500">
+                        Tema
+                      </p>
+
+                      <div className="relative mt-2">
+                        <EditarTextoEdicion
+                          valor={tema}
+                          campo={presentacion.campo}
+                          edicionId={edicion.id}
+                          multilinea
+                          claseTexto="text-lg leading-7 text-zinc-300"
+                        />
+                      </div>
+                    </div>
                   </div>
-
-                  <h3 className="mt-8 text-3xl font-black">
-                    {presentacion.nombre}
-                  </h3>
-
-                  <div className="mt-5 border-t border-white/10 pt-5">
-                    <p className="text-xs uppercase tracking-widest text-zinc-500">
-                      Tema
-                    </p>
-
-                    <p className="mt-2 text-lg leading-7 text-zinc-300">
-                      {presentacion.tema}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -332,22 +501,35 @@ export default async function Expofest2025Page() {
               El tema que trascendió
             </p>
 
-            <h2 className="mt-5 text-4xl font-black leading-tight md:text-6xl">
-              ¿Qué tan similar es Bob Esponja a las esponjas
-              marinas?
-            </h2>
+            <div className="relative mt-5">
+              <EditarTextoEdicion
+                valor={temaTrascendioTitulo}
+                campo="tema_trascendio_titulo"
+                edicionId={edicion.id}
+                multilinea
+                claseTexto="text-4xl font-black leading-tight md:text-6xl"
+              />
+            </div>
 
-            <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
-              Esta edición no tuvo notas ni votaciones. Sin
-              embargo, hubo una presentación que trascendió y que
-              terminó cambiando un poco la dinámica del grupo.
-            </p>
+            <div className="relative mx-auto mt-8 max-w-3xl">
+              <EditarTextoEdicion
+                valor={temaTrascendioDescripcion1}
+                campo="tema_trascendio_descripcion_1"
+                edicionId={edicion.id}
+                multilinea
+                claseTexto="text-lg leading-8 text-zinc-300"
+              />
+            </div>
 
-            <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-zinc-300">
-              A mi parecer, la presentación de Leslie nos enseñó
-              algo que nunca podremos olvidar: ya no podemos
-              despejar a Bob Esponja de Leslie.
-            </p>
+            <div className="relative mx-auto mt-6 max-w-3xl">
+              <EditarTextoEdicion
+                valor={temaTrascendioDescripcion2}
+                campo="tema_trascendio_descripcion_2"
+                edicionId={edicion.id}
+                multilinea
+                claseTexto="text-lg leading-8 text-zinc-300"
+              />
+            </div>
 
             <div className="mx-auto mt-12 max-w-2xl rounded-3xl border border-violet-500/30 bg-violet-950/30 p-8">
               <p className="text-sm uppercase tracking-[0.3em] text-violet-400">
@@ -358,9 +540,15 @@ export default async function Expofest2025Page() {
                 {nombreGanadora}
               </p>
 
-              <p className="mt-3 text-zinc-400">
-                Por una presentación que dejó huella.
-              </p>
+              <div className="relative mt-3">
+                <EditarTextoEdicion
+                  valor={reconocimientoDescripcion}
+                  campo="reconocimiento_descripcion"
+                  edicionId={edicion.id}
+                  multilinea
+                  claseTexto="text-zinc-400"
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -379,55 +567,92 @@ export default async function Expofest2025Page() {
             </div>
 
             <div className="mt-14 space-y-5">
+              {/* MOMENTO FEFI */}
               <div className="rounded-3xl border border-white/10 bg-zinc-900/90 p-8">
-                <h3 className="text-2xl font-bold">
-                  Fefi y su mala suerte
-                </h3>
+                <div className="relative">
+                  <EditarTextoEdicion
+                    valor={momentoFefiTitulo}
+                    campo="momento_fefi_titulo"
+                    edicionId={edicion.id}
+                    claseTexto="text-2xl font-bold"
+                  />
+                </div>
 
-                <p className="mt-4 leading-7 text-zinc-300">
-                  Fefi nos contó algunas de sus historias más
-                  increíbles, incluyendo cómo una vez quedó atrapada
-                  en medio de una balacera y cómo terminó rompiendo
-                  una puerta de vidrio con el cuerpo.
-                </p>
+                <div className="relative mt-4">
+                  <EditarTextoEdicion
+                    valor={momentoFefiDescripcion}
+                    campo="momento_fefi_descripcion"
+                    edicionId={edicion.id}
+                    multilinea
+                    claseTexto="leading-7 text-zinc-300"
+                  />
+                </div>
               </div>
 
+              {/* MOMENTO CAMILO */}
               <div className="rounded-3xl border border-white/10 bg-zinc-900/90 p-8">
-                <h3 className="text-2xl font-bold">
-                  Camilo y sus mascotas
-                </h3>
+                <div className="relative">
+                  <EditarTextoEdicion
+                    valor={momentoCamiloTitulo}
+                    campo="momento_camilo_titulo"
+                    edicionId={edicion.id}
+                    claseTexto="text-2xl font-bold"
+                  />
+                </div>
 
-                <p className="mt-4 leading-7 text-zinc-300">
-                  Camilo nos contó sobre sus mascotas y también
-                  descubrimos que conoce a Angelo desde hace mucho
-                  tiempo.
-                </p>
+                <div className="relative mt-4">
+                  <EditarTextoEdicion
+                    valor={momentoCamiloDescripcion}
+                    campo="momento_camilo_descripcion"
+                    edicionId={edicion.id}
+                    multilinea
+                    claseTexto="leading-7 text-zinc-300"
+                  />
+                </div>
               </div>
 
+              {/* MOMENTO JAVIER */}
               <div className="rounded-3xl border border-white/10 bg-zinc-900/90 p-8">
-                <h3 className="text-2xl font-bold">
-                  Houseki no Kuni
-                </h3>
+                <div className="relative">
+                  <EditarTextoEdicion
+                    valor={momentoJavierTitulo}
+                    campo="momento_javier_titulo"
+                    edicionId={edicion.id}
+                    claseTexto="text-2xl font-bold"
+                  />
+                </div>
 
-                <p className="mt-4 leading-7 text-zinc-300">
-                  Javier nos emocionó con su presentación sobre
-                  Houseki no Kuni. La presentación fue tan especial
-                  que incluso recibió una muñeca relacionada con
-                  la serie.
-                </p>
+                <div className="relative mt-4">
+                  <EditarTextoEdicion
+                    valor={momentoJavierDescripcion}
+                    campo="momento_javier_descripcion"
+                    edicionId={edicion.id}
+                    multilinea
+                    claseTexto="leading-7 text-zinc-300"
+                  />
+                </div>
               </div>
 
+              {/* MOMENTO GENERAL */}
               <div className="rounded-3xl border border-white/10 bg-zinc-900/90 p-8">
-                <h3 className="text-2xl font-bold">
-                  Un viaje por todos los temas
-                </h3>
+                <div className="relative">
+                  <EditarTextoEdicion
+                    valor={momentoGeneralTitulo}
+                    campo="momento_general_titulo"
+                    edicionId={edicion.id}
+                    claseTexto="text-2xl font-bold"
+                  />
+                </div>
 
-                <p className="mt-4 leading-7 text-zinc-300">
-                  Ricardo nos hizo volver a la infancia, para que
-                  después Gonza nos entregara su dosis de chisme
-                  sobre su paso por la FEUTFSM, antes de finalizar
-                  con las historias de asesinos seriales de Seba.
-                </p>
+                <div className="relative mt-4">
+                  <EditarTextoEdicion
+                    valor={momentoGeneralDescripcion}
+                    campo="momento_general_descripcion"
+                    edicionId={edicion.id}
+                    multilinea
+                    claseTexto="leading-7 text-zinc-300"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -466,16 +691,25 @@ export default async function Expofest2025Page() {
                   <span className="text-7xl">🏆</span>
                 </div>
 
-                <p className="mt-8 text-xl leading-8 text-zinc-300">
-                  ¿Qué tan similar es Bob Esponja a las esponjas
-                  marinas?
-                </p>
+                <div className="relative mt-8">
+                  <EditarTextoEdicion
+                    valor={ganadoraTema}
+                    campo="ganadora_tema"
+                    edicionId={edicion.id}
+                    multilinea
+                    claseTexto="text-xl leading-8 text-zinc-300"
+                  />
+                </div>
 
-                <p className="mt-6 text-sm leading-6 text-zinc-500">
-                  Una presentación que trascendió y que terminó
-                  convirtiéndose en uno de los recuerdos más
-                  característicos de esta edición.
-                </p>
+                <div className="relative mt-6">
+                  <EditarTextoEdicion
+                    valor={ganadoraDescripcion}
+                    campo="ganadora_descripcion"
+                    edicionId={edicion.id}
+                    multilinea
+                    claseTexto="text-sm leading-6 text-zinc-500"
+                  />
+                </div>
 
                 <a
                   href="/eventos/expofest"

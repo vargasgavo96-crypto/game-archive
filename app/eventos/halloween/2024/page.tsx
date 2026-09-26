@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import GaleriaFotos from "@/app/components/GaleriaFotos";
+import EditarTextoEdicion from "@/app/components/EditarTextoEdicion";
 
 type Evento = {
   id: number;
@@ -14,6 +15,7 @@ type Edicion = {
   evento_id: number;
   año: string;
   fecha: string;
+  contenido?: Record<string, string> | null;
 };
 
 type ParticipanteHistorico = {
@@ -375,6 +377,9 @@ export default async function Halloween2024Page() {
                       edicionHistorica.año
                     );
 
+                  const contenido =
+                    edicionSupabase?.contenido ?? {};
+
                   const participantes =
                     edicionHistorica.participantes;
 
@@ -396,6 +401,30 @@ export default async function Halloween2024Page() {
                     indice ===
                     edicionesHistoricas.length - 1;
 
+                  const textoEtiqueta =
+                    contenido.etiqueta ??
+                    "Edición histórica";
+
+                  const textoCampeon =
+                    contenido.campeon ??
+                    "Campeón";
+
+                  const textoMejorDisfraz =
+                    contenido.mejor_disfraz ??
+                    `Mejor Disfraz Halloween ${edicionHistorica.año}`;
+
+                  const textoResultados =
+                    contenido.resultados ??
+                    "Resultados";
+
+                  const textoPodio =
+                    contenido.podio ??
+                    "PODIO";
+
+                  const textoSiguienteEdicion =
+                    contenido.siguiente_edicion ??
+                    "Siguiente edición";
+
                   return (
                     <article
                       key={edicionHistorica.año}
@@ -416,18 +445,36 @@ export default async function Halloween2024Page() {
                             </h3>
                           </div>
 
-                          <p className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600 md:pb-2">
-                            Edición histórica
-                          </p>
+                          {edicionSupabase ? (
+                            <EditarTextoEdicion
+                              valor={textoEtiqueta}
+                              campo="etiqueta"
+                              edicionId={edicionSupabase.id}
+                              claseTexto="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600 md:pb-2"
+                            />
+                          ) : (
+                            <p className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600 md:pb-2">
+                              {textoEtiqueta}
+                            </p>
+                          )}
                         </div>
                       </div>
 
                       {/* CAMPEÓN */}
                       <div className="grid md:grid-cols-2">
                         <div className="flex flex-col justify-center p-8 md:p-14">
-                          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-                            Campeón
-                          </p>
+                          {edicionSupabase ? (
+                            <EditarTextoEdicion
+                              valor={textoCampeon}
+                              campo="campeon"
+                              edicionId={edicionSupabase.id}
+                              claseTexto="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400"
+                            />
+                          ) : (
+                            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                              {textoCampeon}
+                            </p>
+                          )}
 
                           {ganador ? (
                             <>
@@ -437,10 +484,18 @@ export default async function Halloween2024Page() {
                                 )}
                               </h4>
 
-                              <p className="mt-5 text-lg font-semibold text-zinc-300">
-                                Mejor Disfraz Halloween{" "}
-                                {edicionHistorica.año}
-                              </p>
+                              {edicionSupabase ? (
+                                <EditarTextoEdicion
+                                  valor={textoMejorDisfraz}
+                                  campo="mejor_disfraz"
+                                  edicionId={edicionSupabase.id}
+                                  claseTexto="mt-5 text-lg font-semibold text-zinc-300"
+                                />
+                              ) : (
+                                <p className="mt-5 text-lg font-semibold text-zinc-300">
+                                  {textoMejorDisfraz}
+                                </p>
+                              )}
 
                               <div className="mt-8">
                                 <span className="text-7xl">
@@ -486,13 +541,31 @@ export default async function Halloween2024Page() {
                       {mostrarPodio && (
                         <div className="border-t border-white/10 bg-black/20 px-8 py-12 md:px-12 md:py-14">
                           <div className="text-center">
-                            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
-                              Resultados
-                            </p>
+                            {edicionSupabase ? (
+                              <EditarTextoEdicion
+                                valor={textoResultados}
+                                campo="resultados"
+                                edicionId={edicionSupabase.id}
+                                claseTexto="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400"
+                              />
+                            ) : (
+                              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
+                                {textoResultados}
+                              </p>
+                            )}
 
-                            <h4 className="mt-3 text-4xl font-black md:text-5xl">
-                              PODIO
-                            </h4>
+                            {edicionSupabase ? (
+                              <EditarTextoEdicion
+                                valor={textoPodio}
+                                campo="podio"
+                                edicionId={edicionSupabase.id}
+                                claseTexto="mt-3 text-4xl font-black md:text-5xl"
+                              />
+                            ) : (
+                              <h4 className="mt-3 text-4xl font-black md:text-5xl">
+                                {textoPodio}
+                              </h4>
+                            )}
                           </div>
 
                           <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -584,9 +657,18 @@ export default async function Halloween2024Page() {
                         <div className="flex items-center gap-6 border-t border-white/5 bg-black/30 px-8 py-8 md:px-12">
                           <div className="h-px flex-1 bg-white/10" />
 
-                          <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600">
-                            Siguiente edición
-                          </span>
+                          {edicionSupabase ? (
+                            <EditarTextoEdicion
+                              valor={textoSiguienteEdicion}
+                              campo="siguiente_edicion"
+                              edicionId={edicionSupabase.id}
+                              claseTexto="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600"
+                            />
+                          ) : (
+                            <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600">
+                              {textoSiguienteEdicion}
+                            </span>
+                          )}
 
                           <div className="h-px flex-1 bg-white/10" />
                         </div>

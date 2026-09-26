@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import EditarTexto from "@/app/components/EditarTexto";
 
 type Evento = {
   id: number;
@@ -6,6 +7,18 @@ type Evento = {
   descripcion: string;
   logo: string | null;
   slug: string;
+  historia: string | null;
+
+  juegos_titulo: string | null;
+  juegos_descripcion: string | null;
+
+  organizador_titulo: string | null;
+  organizador_descripcion: string | null;
+
+  disfraces_titulo: string | null;
+  disfraces_descripcion: string | null;
+  disfraces_pregunta: string | null;
+  disfraces_subtexto: string | null;
 };
 
 type Edicion = {
@@ -41,12 +54,29 @@ function nombreCorto(nombre: string) {
 }
 
 export default async function HalloweenPage() {
-  const { data: evento, error: eventoError } =
-    await supabase
-      .from("eventos")
-      .select("id, nombre, descripcion, logo, slug")
-      .eq("slug", "halloween")
-      .single();
+  const {
+    data: evento,
+    error: eventoError,
+  } = await supabase
+    .from("eventos")
+    .select(`
+      id,
+      nombre,
+      descripcion,
+      logo,
+      slug,
+      historia,
+      juegos_titulo,
+      juegos_descripcion,
+      organizador_titulo,
+      organizador_descripcion,
+      disfraces_titulo,
+      disfraces_descripcion,
+      disfraces_pregunta,
+      disfraces_subtexto
+    `)
+    .eq("slug", "halloween")
+    .single();
 
   if (eventoError || !evento) {
     console.error(
@@ -179,6 +209,51 @@ export default async function HalloweenPage() {
     (edicion) => Number(edicion.año) <= 2024
   );
 
+  /*
+   * TEXTOS POR DEFECTO
+   *
+   * Si algún campo está vacío en Supabase,
+   * mantenemos el texto que ya tenía la página.
+   */
+
+  const historiaInicial =
+    evento.historia?.trim() ||
+    `Halloween se convirtió en una de nuestras celebraciones,
+incorporando juegos, actividades y distintas formas de
+disfrutar esta fecha junto a nuestros amigos.`;
+
+  const juegosTitulo =
+    evento.juegos_titulo?.trim() ||
+    "Juegos y actividades";
+
+  const juegosDescripcion =
+    evento.juegos_descripcion?.trim() ||
+    "La celebración incluye distintos juegos y actividades preparadas especialmente para Halloween.";
+
+  const organizadorTitulo =
+    evento.organizador_titulo?.trim() ||
+    "Organizado por Camilo";
+
+  const organizadorDescripcion =
+    evento.organizador_descripcion?.trim() ||
+    "Camilo, gran fanático de Halloween, es el encargado de organizar la celebración, preparar los juegos y llevar adelante sus principales actividades.";
+
+  const disfracesTitulo =
+    evento.disfraces_titulo?.trim() ||
+    "TORNEO DE DISFRACES";
+
+  const disfracesDescripcion =
+    evento.disfraces_descripcion?.trim() ||
+    "Una de las actividades principales de Halloween es nuestro torneo de disfraces, donde los participantes pueden demostrar toda su creatividad para convertirse en el mejor disfraz de la celebración.";
+
+  const disfracesPregunta =
+    evento.disfraces_pregunta?.trim() ||
+    "¿QUIÉN SERÁ EL MEJOR DISFRAZ?";
+
+  const disfracesSubtexto =
+    evento.disfraces_subtexto?.trim() ||
+    "Una competencia para poner a prueba la creatividad, originalidad y puesta en escena.";
+
   return (
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
@@ -190,11 +265,17 @@ export default async function HalloweenPage() {
       <div className="fixed inset-0 z-0 bg-black/65" />
 
       <div className="relative z-10">
-        {/* HERO */}
+
+        {/* =====================================================
+            HERO
+        ===================================================== */}
+
         <section className="relative overflow-hidden border-b border-white/10">
+
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,92,0,0.25),_transparent_50%)]" />
 
           <div className="relative mx-auto flex min-h-[680px] max-w-7xl flex-col items-center justify-center px-6 py-28 text-center">
+
             {evento.logo && (
               <img
                 src={evento.logo}
@@ -207,19 +288,36 @@ export default async function HalloweenPage() {
               Celebración
             </p>
 
-            <h1 className="mt-4 text-6xl font-black uppercase tracking-tight md:text-8xl">
-              HALLOWEEN
-            </h1>
+            {/* NOMBRE */}
 
-            <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
-              {evento.descripcion}
-            </p>
+            <EditarTexto
+              valor={evento.nombre}
+              campo="nombre"
+              eventoId={evento.id}
+              claseTexto="mt-4 text-6xl font-black uppercase tracking-tight md:text-8xl"
+            />
+
+            {/* DESCRIPCIÓN */}
+
+            <EditarTexto
+              valor={evento.descripcion}
+              campo="descripcion"
+              eventoId={evento.id}
+              multilinea
+              claseTexto="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300"
+            />
+
           </div>
         </section>
 
-        {/* NUESTRA CELEBRACIÓN */}
+        {/* =====================================================
+            NUESTRA CELEBRACIÓN
+        ===================================================== */}
+
         <section className="mx-auto max-w-5xl px-6 py-24">
+
           <div className="text-center">
+
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
               Nuestra celebración
             </p>
@@ -228,76 +326,142 @@ export default async function HalloweenPage() {
               UNA NOCHE PARA CELEBRAR
             </h2>
 
-            <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
-              Halloween se convirtió en una de nuestras celebraciones,
-              incorporando juegos, actividades y distintas formas de
-              disfrutar esta fecha junto a nuestros amigos.
-            </p>
+            {/* HISTORIA */}
+
+            <div className="mt-8">
+
+              <EditarTexto
+                valor={historiaInicial}
+                campo="historia"
+                eventoId={evento.id}
+                multilinea
+                claseTexto="mx-auto max-w-3xl whitespace-pre-line text-lg leading-8 text-zinc-300"
+              />
+
+            </div>
+
           </div>
 
+          {/* =====================================================
+              TARJETAS
+          ===================================================== */}
+
           <div className="mt-16 grid gap-6 md:grid-cols-2">
-            {/* JUEGOS */}
+
+            {/* =================================================
+                JUEGOS
+            ================================================= */}
+
             <div className="rounded-3xl border border-orange-500/20 bg-black/50 p-8 backdrop-blur-sm transition duration-300 hover:border-orange-500/40 hover:bg-black/60">
+
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-400/20 bg-orange-500/10 text-3xl">
                 🎃
               </div>
 
-              <h3 className="mt-6 text-2xl font-bold">
-                Juegos y actividades
-              </h3>
+              {/* TÍTULO EDITABLE */}
 
-              <p className="mt-4 leading-7 text-zinc-400">
-                La celebración incluye distintos juegos y actividades
-                preparadas especialmente para Halloween.
-              </p>
+              <EditarTexto
+                valor={juegosTitulo}
+                campo="juegos_titulo"
+                eventoId={evento.id}
+                claseTexto="mt-6 text-2xl font-bold"
+              />
+
+              {/* DESCRIPCIÓN EDITABLE */}
+
+              <EditarTexto
+                valor={juegosDescripcion}
+                campo="juegos_descripcion"
+                eventoId={evento.id}
+                multilinea
+                claseTexto="mt-4 leading-7 text-zinc-400"
+              />
+
             </div>
 
-            {/* CAMILO */}
+            {/* =================================================
+                ORGANIZADOR
+            ================================================= */}
+
             <div className="rounded-3xl border border-orange-500/20 bg-black/50 p-8 backdrop-blur-sm transition duration-300 hover:border-orange-500/40 hover:bg-black/60">
+
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-400/20 bg-orange-500/10 text-3xl">
                 👻
               </div>
 
-              <h3 className="mt-6 text-2xl font-bold">
-                Organizado por Camilo
-              </h3>
+              {/* TÍTULO EDITABLE */}
 
-              <p className="mt-4 leading-7 text-zinc-400">
-                Camilo, gran fanático de Halloween, es el encargado de
-                organizar la celebración, preparar los juegos y llevar
-                adelante sus principales actividades.
-              </p>
+              <EditarTexto
+                valor={organizadorTitulo}
+                campo="organizador_titulo"
+                eventoId={evento.id}
+                claseTexto="mt-6 text-2xl font-bold"
+              />
+
+              {/* DESCRIPCIÓN EDITABLE */}
+
+              <EditarTexto
+                valor={organizadorDescripcion}
+                campo="organizador_descripcion"
+                eventoId={evento.id}
+                multilinea
+                claseTexto="mt-4 leading-7 text-zinc-400"
+              />
+
             </div>
+
           </div>
+
         </section>
 
-        {/* TORNEO DE DISFRACES */}
+        {/* =====================================================
+            TORNEO DE DISFRACES
+        ===================================================== */}
+
         <section className="border-y border-white/10 bg-black/30">
+
           <div className="mx-auto max-w-6xl px-6 py-24">
+
             <div className="grid items-center gap-12 md:grid-cols-2">
+
+              {/* IZQUIERDA */}
+
               <div>
+
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
                   La gran competencia
                 </p>
 
-                <h2 className="mt-4 text-4xl font-black md:text-6xl">
-                  TORNEO DE
-                  <br />
-                  DISFRACES
-                </h2>
+                {/* TÍTULO EDITABLE */}
 
-                <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-300">
-                  Una de las actividades principales de Halloween es
-                  nuestro torneo de disfraces, donde los participantes
-                  pueden demostrar toda su creatividad para convertirse
-                  en el mejor disfraz de la celebración.
-                </p>
+                <EditarTexto
+                  valor={disfracesTitulo}
+                  campo="disfraces_titulo"
+                  eventoId={evento.id}
+                  multilinea
+                  claseTexto="mt-4 text-4xl font-black md:text-6xl"
+                />
+
+                {/* DESCRIPCIÓN EDITABLE */}
+
+                <EditarTexto
+                  valor={disfracesDescripcion}
+                  campo="disfraces_descripcion"
+                  eventoId={evento.id}
+                  multilinea
+                  claseTexto="mt-8 max-w-xl text-lg leading-8 text-zinc-300"
+                />
+
               </div>
 
+              {/* DERECHA */}
+
               <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-black/50 p-10">
+
                 <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl" />
 
                 <div className="relative text-center">
+
                   <p className="text-7xl">
                     🎃
                   </p>
@@ -306,23 +470,44 @@ export default async function HalloweenPage() {
                     Halloween
                   </p>
 
-                  <h3 className="mt-3 text-3xl font-black">
-                    ¿QUIÉN SERÁ EL MEJOR DISFRAZ?
-                  </h3>
+                  {/* PREGUNTA EDITABLE */}
 
-                  <p className="mt-4 text-zinc-400">
-                    Una competencia para poner a prueba la creatividad,
-                    originalidad y puesta en escena.
-                  </p>
+                  <EditarTexto
+                    valor={disfracesPregunta}
+                    campo="disfraces_pregunta"
+                    eventoId={evento.id}
+                    multilinea
+                    claseTexto="mt-3 text-3xl font-black"
+                  />
+
+                  {/* SUBTEXTO EDITABLE */}
+
+                  <EditarTexto
+                    valor={disfracesSubtexto}
+                    campo="disfraces_subtexto"
+                    eventoId={evento.id}
+                    multilinea
+                    claseTexto="mt-4 text-zinc-400"
+                  />
+
                 </div>
+
               </div>
+
             </div>
+
           </div>
+
         </section>
 
-        {/* EDICIONES */}
+        {/* =====================================================
+            EDICIONES
+        ===================================================== */}
+
         <section className="mx-auto max-w-7xl px-6 py-24">
+
           <div className="text-center">
+
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
               Archivo
             </p>
@@ -335,10 +520,14 @@ export default async function HalloweenPage() {
               Las ediciones más recientes y el archivo histórico
               de Halloween.
             </p>
+
           </div>
 
-          {!edicionesNormales.length && !existeArchivoHistorico ? (
+          {!edicionesNormales.length &&
+          !existeArchivoHistorico ? (
+
             <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-white/10 bg-black/40 px-8 py-16 text-center backdrop-blur-sm">
+
               <p className="text-5xl">
                 👻
               </p>
@@ -350,10 +539,15 @@ export default async function HalloweenPage() {
               <p className="mt-3 text-zinc-500">
                 Todavía no hay ediciones registradas para Halloween.
               </p>
+
             </div>
+
           ) : (
+
             <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+
               {edicionesNormales.map((edicion) => {
+
                 const ganador =
                   ganadorPorEdicion.get(
                     edicion.id
@@ -370,7 +564,9 @@ export default async function HalloweenPage() {
                     href={`/eventos/halloween/${edicion.año}`}
                     className="group overflow-hidden rounded-3xl border border-white/10 bg-black/50 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-orange-500/40 hover:bg-black/70"
                   >
+
                     <div className="relative flex h-64 items-center justify-center overflow-hidden bg-black/60">
+
                       <img
                         src={
                           imagenGanador ??
@@ -393,6 +589,7 @@ export default async function HalloweenPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
 
                       <div className="absolute bottom-5 left-6">
+
                         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-400">
                           Edición
                         </p>
@@ -400,10 +597,13 @@ export default async function HalloweenPage() {
                         <p className="mt-1 text-3xl font-black text-white">
                           {edicion.año}
                         </p>
+
                       </div>
+
                     </div>
 
                     <div className="px-6 py-5">
+
                       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-orange-400">
                         Campeón
                       </p>
@@ -417,6 +617,7 @@ export default async function HalloweenPage() {
                       </p>
 
                       <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+
                         <p className="text-sm text-zinc-400">
                           Ver edición
                         </p>
@@ -424,19 +625,25 @@ export default async function HalloweenPage() {
                         <span className="text-sm font-semibold text-orange-400 transition duration-300 group-hover:translate-x-1">
                           →
                         </span>
+
                       </div>
+
                     </div>
+
                   </a>
                 );
               })}
 
               {/* EDICIONES HISTÓRICAS */}
+
               {existeArchivoHistorico && (
                 <a
                   href="/eventos/halloween/2024"
                   className="group overflow-hidden rounded-3xl border border-orange-500/30 bg-black/50 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-orange-500/60 hover:bg-black/70"
                 >
+
                   <div className="relative flex h-64 items-center justify-center overflow-hidden bg-black/60">
+
                     <img
                       src={
                         evento.logo ??
@@ -449,6 +656,7 @@ export default async function HalloweenPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
 
                     <div className="absolute bottom-5 left-6">
+
                       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-400">
                         Archivo histórico
                       </p>
@@ -458,10 +666,13 @@ export default async function HalloweenPage() {
                         <br />
                         históricas
                       </p>
+
                     </div>
+
                   </div>
 
                   <div className="px-6 py-5">
+
                     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-orange-400">
                       Historia de Halloween
                     </p>
@@ -471,6 +682,7 @@ export default async function HalloweenPage() {
                     </p>
 
                     <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+
                       <p className="text-sm text-zinc-400">
                         Ver archivo histórico
                       </p>
@@ -478,17 +690,27 @@ export default async function HalloweenPage() {
                       <span className="text-sm font-semibold text-orange-400 transition duration-300 group-hover:translate-x-1">
                         →
                       </span>
+
                     </div>
+
                   </div>
+
                 </a>
               )}
+
             </div>
           )}
+
         </section>
 
-        {/* FOOTER */}
+        {/* =====================================================
+            FOOTER
+        ===================================================== */}
+
         <footer className="border-t border-white/10 bg-black/50 px-6 py-10">
+
           <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-zinc-500 md:flex-row md:items-center md:justify-between">
+
             <p>
               THE GAME ARCHIVE
             </p>
@@ -496,8 +718,11 @@ export default async function HalloweenPage() {
             <p>
               Halloween · Juegos · Disfraces
             </p>
+
           </div>
+
         </footer>
+
       </div>
     </main>
   );
