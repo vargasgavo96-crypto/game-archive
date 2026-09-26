@@ -685,7 +685,7 @@ export default function GaleriaFotos({
 
         <button
           type="button"
-          onClick={abrirModal}
+          onClick={() => abrirModal()}
           className="rounded-full bg-white px-6 py-3 text-sm font-bold text-black transition hover:scale-105 hover:bg-violet-200"
         >
           + AGREGAR FOTO
