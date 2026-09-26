@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Evento = {
@@ -274,12 +275,12 @@ export default async function Home() {
               Historias, campeones y momentos que hicieron historia.
             </p>
 
-            <a
+            <Link
               href="/eventos"
               className="mt-10 rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:scale-105 hover:bg-violet-200"
             >
               EXPLORAR EVENTOS
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -297,7 +298,7 @@ export default async function Home() {
                 </h2>
               </div>
 
-              <a
+              <Link
                 href={`/eventos/${eventoDelMes.slug}/${edicionDelMes.año}`}
                 className="group block overflow-hidden rounded-3xl border border-white/10 bg-black transition duration-300 hover:border-violet-500/60"
               >
@@ -324,7 +325,7 @@ export default async function Home() {
                     </p>
                   </div>
                 </div>
-              </a>
+              </Link>
             </div>
           </section>
         )}
@@ -354,7 +355,7 @@ export default async function Home() {
               if (!item.evento || !item.persona) return null;
 
               return (
-                <a
+                <Link
                   key={item.edicion.id}
                   href={`/eventos/${item.evento.slug}/${item.edicion.año}`}
                   className={`group relative flex h-[760px] flex-col overflow-hidden rounded-3xl border bg-zinc-900/90 px-8 pb-8 pt-8 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50 ${
@@ -428,18 +429,18 @@ export default async function Home() {
                       </div>
                     </div>
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>
 
           <div className="mt-10 text-center">
-            <a
+            <Link
               href="/hall-of-fame"
               className="inline-block rounded-full border border-white/15 px-7 py-3 text-sm font-semibold transition hover:bg-white hover:text-black"
             >
               VER HALL OF FAME COMPLETO
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -474,7 +475,7 @@ export default async function Home() {
                 const ultimoCampeon = campeonPorEvento.get(evento.id);
 
                 return (
-                  <a
+                  <Link
                     key={evento.id}
                     href={`/eventos/${evento.slug}`}
                     className="group rounded-2xl border border-white/10 bg-zinc-900/90 p-7 transition hover:border-violet-500/50"
@@ -525,7 +526,7 @@ export default async function Home() {
                     <p className="mt-6 text-sm text-zinc-500">
                       Ver historia →
                     </p>
-                  </a>
+                  </Link>
                 );
               })}
             </div>

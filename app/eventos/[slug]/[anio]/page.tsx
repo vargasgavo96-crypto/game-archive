@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -93,16 +93,19 @@ export default async function EdicionPage({
   const { data: edicionData, error: edicionError } =
     await supabase
       .from("ediciones")
-      .select("id, evento_id, año, fecha")
+      .select("id, evento_id, fecha")
       .eq("evento_id", evento.id)
-      .eq("año", anio)
+      .filter("año", "eq", anio)
       .single();
 
   if (edicionError || !edicionData) {
     notFound();
   }
 
-  const edicion = edicionData as Edicion;
+  const edicion = {
+    ...edicionData,
+    año: anio,
+  } as Edicion;
 
   const [
     { data: premiosData },

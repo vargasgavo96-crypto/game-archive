@@ -64,7 +64,7 @@ export default async function EventoPage({
     error: edicionesError,
   } = await supabase
     .from("ediciones")
-    .select("id, evento_id, año, fecha")
+    .select("*")
     .eq("evento_id", evento.id)
     .order("fecha", {
       ascending: false,
@@ -77,8 +77,7 @@ export default async function EventoPage({
     );
   }
 
-  const ediciones = (edicionesData ??
-    []) as Edicion[];
+  const ediciones = (edicionesData ?? []) as Edicion[];
 
   return (
     <main
