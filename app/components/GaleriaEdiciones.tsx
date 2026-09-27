@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+
 import { supabase } from "@/lib/supabase";
 
 type Foto = {
@@ -13,6 +14,7 @@ type Foto = {
   descripcion: string | null;
   orden: number | null;
   created_at: string;
+  portada: boolean;
 };
 
 type EdicionGaleria = {
@@ -38,7 +40,8 @@ export default function GaleriaEdiciones({
   const [edicionSeleccionada, setEdicionSeleccionada] =
     useState<EdicionGaleria | null>(null);
 
-  const [fotoActual, setFotoActual] = useState(0);
+  const [fotoActual, setFotoActual] =
+    useState(0);
 
   const [usuarioLogeado, setUsuarioLogeado] =
     useState(false);
@@ -55,6 +58,9 @@ export default function GaleriaEdiciones({
   const [eliminando, setEliminando] =
     useState(false);
 
+  const [cambiandoPortada, setCambiandoPortada] =
+    useState(false);
+
   const [mensaje, setMensaje] =
     useState("");
 
@@ -64,9 +70,17 @@ export default function GaleriaEdiciones({
   const inputFotosRef =
     useRef<HTMLInputElement>(null);
 
+  // =====================================================
+  // SINCRONIZAR EDICIONES
+  // =====================================================
+
   useEffect(() => {
     setEdicionesLocales(ediciones);
   }, [ediciones]);
+
+  // =====================================================
+  // COMPROBAR SESIÓN
+  // =====================================================
 
   useEffect(() => {
     async function comprobarSesion() {
@@ -84,7 +98,9 @@ export default function GaleriaEdiciones({
     } =
       supabase.auth.onAuthStateChange(
         (_event, session) => {
-          setUsuarioLogeado(!!session?.user);
+          setUsuarioLogeado(
+            !!session?.user
+          );
         }
       );
 
@@ -92,6 +108,10 @@ export default function GaleriaEdiciones({
       subscription.unsubscribe();
     };
   }, []);
+
+  // =====================================================
+  // TECLADO
+  // =====================================================
 
   useEffect(() => {
     function manejarTeclado(
@@ -137,17 +157,28 @@ export default function GaleriaEdiciones({
     modoSeleccion,
   ]);
 
+  // =====================================================
+  // BLOQUEAR SCROLL CON MODAL
+  // =====================================================
+
   useEffect(() => {
     if (edicionSeleccionada) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow =
+        "hidden";
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow =
+        "";
     }
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow =
+        "";
     };
   }, [edicionSeleccionada]);
+
+  // =====================================================
+  // ABRIR GALERÍA
+  // =====================================================
 
   function abrirGaleria(
     edicion: EdicionGaleria
@@ -160,8 +191,16 @@ export default function GaleriaEdiciones({
     setError("");
   }
 
+  // =====================================================
+  // CERRAR GALERÍA
+  // =====================================================
+
   function cerrarGaleria() {
-    if (subiendo || eliminando) {
+    if (
+      subiendo ||
+      eliminando ||
+      cambiandoPortada
+    ) {
       return;
     }
 
@@ -172,6 +211,10 @@ export default function GaleriaEdiciones({
     setMensaje("");
     setError("");
   }
+
+  // =====================================================
+  // SIGUIENTE FOTO
+  // =====================================================
 
   function siguienteFoto() {
     if (
@@ -189,6 +232,10 @@ export default function GaleriaEdiciones({
     );
   }
 
+  // =====================================================
+  // FOTO ANTERIOR
+  // =====================================================
+
   function fotoAnterior() {
     if (
       !edicionSeleccionada ||
@@ -203,6 +250,10 @@ export default function GaleriaEdiciones({
         : actual - 1
     );
   }
+
+  // =====================================================
+  // ACTUALIZAR EDICIÓN LOCAL
+  // =====================================================
 
   function actualizarEdicionLocal(
     edicionId: number,
@@ -220,7 +271,8 @@ export default function GaleriaEdiciones({
     );
 
     setEdicionSeleccionada((actual) =>
-      actual && actual.id === edicionId
+      actual &&
+      actual.id === edicionId
         ? {
             ...actual,
             fotos,
@@ -228,6 +280,10 @@ export default function GaleriaEdiciones({
         : actual
     );
   }
+
+  // =====================================================
+  // SELECCIONAR FOTO
+  // =====================================================
 
   function alternarSeleccion(
     fotoId: number
@@ -240,6 +296,10 @@ export default function GaleriaEdiciones({
         : [...actuales, fotoId]
     );
   }
+
+  // =====================================================
+  // SELECCIONAR TODAS
+  // =====================================================
 
   function seleccionarTodas() {
     if (!edicionSeleccionada) {
@@ -257,14 +317,24 @@ export default function GaleriaEdiciones({
     ) {
       setSeleccionadas([]);
     } else {
-      setSeleccionadas(todosLosIds);
+      setSeleccionadas(
+        todosLosIds
+      );
     }
   }
+
+  // =====================================================
+  // CANCELAR SELECCIÓN
+  // =====================================================
 
   function cancelarSeleccion() {
     setSeleccionadas([]);
     setModoSeleccion(false);
   }
+
+  // =====================================================
+  // INICIAR SELECCIÓN
+  // =====================================================
 
   function iniciarSeleccion() {
     setMensaje("");
@@ -272,12 +342,20 @@ export default function GaleriaEdiciones({
     setModoSeleccion(true);
   }
 
+  // =====================================================
+  // ABRIR SELECTOR DE FOTOS
+  // =====================================================
+
   function abrirSelectorFotos() {
     setMensaje("");
     setError("");
 
     inputFotosRef.current?.click();
   }
+
+  // =====================================================
+  // SUBIR FOTOS
+  // =====================================================
 
   async function subirFotos(
     event: React.ChangeEvent<HTMLInputElement>
@@ -311,10 +389,14 @@ export default function GaleriaEdiciones({
     try {
       const archivosImagenes =
         archivos.filter((archivo) =>
-          archivo.type.startsWith("image/")
+          archivo.type.startsWith(
+            "image/"
+          )
         );
 
-      if (archivosImagenes.length === 0) {
+      if (
+        archivosImagenes.length === 0
+      ) {
         setError(
           "Los archivos seleccionados no contienen imágenes válidas."
         );
@@ -337,7 +419,8 @@ export default function GaleriaEdiciones({
           archivo.name
             .split(".")
             .pop()
-            ?.toLowerCase() || "jpg";
+            ?.toLowerCase() ||
+          "jpg";
 
         const nombreUnico =
           `${Date.now()}-${crypto.randomUUID()}.${extension}`;
@@ -366,7 +449,9 @@ export default function GaleriaEdiciones({
           data: publicUrlData,
         } = supabase.storage
           .from("eventos-fotos")
-          .getPublicUrl(ruta);
+          .getPublicUrl(
+            ruta
+          );
 
         const {
           data: fotoInsertada,
@@ -380,9 +465,10 @@ export default function GaleriaEdiciones({
               publicUrlData.publicUrl,
             descripcion: null,
             orden: ordenActual,
+            portada: false,
           })
           .select(
-            "id, imagen, descripcion, orden, created_at"
+            "id, imagen, descripcion, orden, created_at, portada"
           )
           .single();
 
@@ -440,6 +526,10 @@ export default function GaleriaEdiciones({
     }
   }
 
+  // =====================================================
+  // OBTENER RUTA STORAGE
+  // =====================================================
+
   function obtenerRutaStorage(
     url: string
   ) {
@@ -459,6 +549,10 @@ export default function GaleriaEdiciones({
       )
     );
   }
+
+  // =====================================================
+  // ELIMINAR FOTOS
+  // =====================================================
 
   async function eliminarSeleccionadas() {
     if (!usuarioLogeado) {
@@ -480,13 +574,14 @@ export default function GaleriaEdiciones({
     const cantidad =
       seleccionadas.length;
 
-    const confirmar = window.confirm(
-      `¿Seguro que quieres eliminar ${cantidad} ${
-        cantidad === 1
-          ? "fotografía"
-          : "fotografías"
-      }? Esta acción no se puede deshacer.`
-    );
+    const confirmar =
+      window.confirm(
+        `¿Seguro que quieres eliminar ${cantidad} ${
+          cantidad === 1
+            ? "fotografía"
+            : "fotografías"
+        }? Esta acción no se puede deshacer.`
+      );
 
     if (!confirmar) {
       return;
@@ -500,7 +595,9 @@ export default function GaleriaEdiciones({
       const fotosAEliminar =
         edicionSeleccionada.fotos.filter(
           (foto) =>
-            seleccionadas.includes(foto.id)
+            seleccionadas.includes(
+              foto.id
+            )
         );
 
       const rutasStorage =
@@ -517,12 +614,16 @@ export default function GaleriaEdiciones({
               ruta !== null
           );
 
-      if (rutasStorage.length > 0) {
+      if (
+        rutasStorage.length > 0
+      ) {
         const {
           error: storageError,
         } = await supabase.storage
           .from("eventos-fotos")
-          .remove(rutasStorage);
+          .remove(
+            rutasStorage
+          );
 
         if (storageError) {
           console.error(
@@ -564,10 +665,13 @@ export default function GaleriaEdiciones({
       setSeleccionadas([]);
       setModoSeleccion(false);
 
-      if (fotosRestantes.length === 0) {
+      if (
+        fotosRestantes.length === 0
+      ) {
         setFotoActual(0);
       } else if (
-        fotoActual >= fotosRestantes.length
+        fotoActual >=
+        fotosRestantes.length
       ) {
         setFotoActual(
           fotosRestantes.length - 1
@@ -595,74 +699,226 @@ export default function GaleriaEdiciones({
     }
   }
 
+  // =====================================================
+  // ESTABLECER PORTADA
+  // =====================================================
+
+  async function establecerPortada(
+    foto: Foto
+  ) {
+    if (!usuarioLogeado) {
+      setError(
+        "Debes iniciar sesión para cambiar la portada."
+      );
+
+      return;
+    }
+
+    if (!edicionSeleccionada) {
+      return;
+    }
+
+    if (foto.portada) {
+      setMensaje(
+        "⭐ Esta fotografía ya es la portada."
+      );
+
+      return;
+    }
+
+    setCambiandoPortada(true);
+    setMensaje("");
+    setError("");
+
+    try {
+      // Primero quitamos la portada actual.
+      const {
+        error: quitarError,
+      } = await supabase
+        .from("galerias")
+        .update({
+          portada: false,
+        })
+        .eq(
+          "edicion_id",
+          edicionSeleccionada.id
+        )
+        .eq(
+          "portada",
+          true
+        );
+
+      if (quitarError) {
+        throw quitarError;
+      }
+
+      // Después marcamos la nueva portada.
+      const {
+        error: marcarError,
+      } = await supabase
+        .from("galerias")
+        .update({
+          portada: true,
+        })
+        .eq(
+          "id",
+          foto.id
+        )
+        .eq(
+          "edicion_id",
+          edicionSeleccionada.id
+        );
+
+      if (marcarError) {
+        throw marcarError;
+      }
+
+      // Actualizamos el estado local.
+      const fotosActualizadas =
+        edicionSeleccionada.fotos.map(
+          (fotoActual) => ({
+            ...fotoActual,
+            portada:
+              fotoActual.id ===
+              foto.id,
+          })
+        );
+
+      actualizarEdicionLocal(
+        edicionSeleccionada.id,
+        fotosActualizadas
+      );
+
+      setMensaje(
+        "⭐ Portada actualizada correctamente."
+      );
+    } catch (error) {
+      console.error(
+        "Error estableciendo portada:",
+        error
+      );
+
+      setError(
+        "No se pudo establecer la portada."
+      );
+    } finally {
+      setCambiandoPortada(false);
+    }
+  }
+
+  // =====================================================
+  // RENDER
+  // =====================================================
+
   return (
     <>
+      {/* =================================================
+          TARJETAS DE EDICIONES
+          ================================================= */}
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {edicionesLocales.map((edicion) => {
-          const portada =
-            edicion.fotos[0];
+        {edicionesLocales.map(
+          (edicion) => {
+            /*
+             * Primero buscamos la foto marcada
+             * explícitamente como portada.
+             *
+             * Si todavía no existe una portada,
+             * usamos la primera foto como respaldo.
+             */
+            const portada =
+              edicion.fotos.find(
+                (foto) =>
+                  foto.portada
+              ) ??
+              edicion.fotos[0];
 
-          return (
-            <button
-              key={edicion.id}
-              type="button"
-              onClick={() =>
-                abrirGaleria(edicion)
-              }
-              className="group relative aspect-square overflow-hidden rounded-3xl border border-white/10 bg-zinc-900 text-left transition duration-500 hover:-translate-y-1 hover:border-violet-400/40 hover:shadow-2xl hover:shadow-violet-950/30"
-            >
-              {portada ? (
-                <img
-                  src={portada.imagen}
-                  alt={`${edicion.eventoNombre} ${edicion.año}`}
-                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                />
-              ) : edicion.eventoLogo ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 p-12">
+            return (
+              <button
+                key={edicion.id}
+                type="button"
+                onClick={() =>
+                  abrirGaleria(
+                    edicion
+                  )
+                }
+                className="group relative aspect-square overflow-hidden rounded-3xl border border-white/10 bg-zinc-900 text-left transition duration-500 hover:-translate-y-1 hover:border-violet-400/40 hover:shadow-2xl hover:shadow-violet-950/30"
+              >
+                {portada ? (
                   <img
-                    src={edicion.eventoLogo}
-                    alt={edicion.eventoNombre}
-                    className="max-h-full max-w-full object-contain opacity-80 transition duration-700 group-hover:scale-105 group-hover:opacity-100"
+                    src={portada.imagen}
+                    alt={`${edicion.eventoNombre} ${edicion.año}`}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   />
-                </div>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-                  <span className="text-sm uppercase tracking-[0.25em] text-zinc-600">
-                    Sin fotografías
-                  </span>
-                </div>
-              )}
+                ) : edicion.eventoLogo ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 p-12">
+                    <img
+                      src={
+                        edicion.eventoLogo
+                      }
+                      alt={
+                        edicion.eventoNombre
+                      }
+                      className="max-h-full max-w-full object-contain opacity-80 transition duration-700 group-hover:scale-105 group-hover:opacity-100"
+                    />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                    <span className="text-sm uppercase tracking-[0.25em] text-zinc-600">
+                      Sin fotografías
+                    </span>
+                  </div>
+                )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
-              <div className="absolute inset-x-0 bottom-0 p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">
-                  Edición
-                </p>
-
-                <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
-                  {edicion.eventoNombre}
-                </h2>
-
-                <div className="mt-1 flex items-center justify-between gap-4">
-                  <p className="text-lg font-bold text-zinc-300">
-                    {edicion.año}
+                <div className="absolute inset-x-0 bottom-0 p-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">
+                    Edición
                   </p>
 
-                  <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-xs font-semibold text-zinc-300 backdrop-blur">
-                    {edicion.fotos.length}{" "}
-                    {edicion.fotos.length === 1
-                      ? "foto"
-                      : "fotos"}
-                  </span>
-                </div>
-              </div>
+                  <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
+                    {
+                      edicion.eventoNombre
+                    }
+                  </h2>
 
-              <div className="absolute inset-0 border border-transparent transition duration-500 group-hover:border-violet-400/30" />
-            </button>
-          );
-        })}
+                  <div className="mt-1 flex items-center justify-between gap-4">
+                    <p className="text-lg font-bold text-zinc-300">
+                      {edicion.año}
+                    </p>
+
+                    <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-xs font-semibold text-zinc-300 backdrop-blur">
+                      {
+                        edicion.fotos
+                          .length
+                      }{" "}
+                      {edicion.fotos
+                        .length === 1
+                        ? "foto"
+                        : "fotos"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Indicador visual de portada */}
+                {portada &&
+                  portada.portada && (
+                    <div className="absolute left-5 top-5 rounded-full bg-yellow-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-black shadow-lg">
+                      ⭐ Portada
+                    </div>
+                  )}
+
+                <div className="absolute inset-0 border border-transparent transition duration-500 group-hover:border-violet-400/30" />
+              </button>
+            );
+          }
+        )}
       </div>
+
+      {/* =================================================
+          SIN EDICIONES
+          ================================================= */}
 
       {edicionesLocales.length === 0 && (
         <div className="rounded-3xl border border-dashed border-white/10 bg-zinc-900/50 px-6 py-20 text-center">
@@ -671,6 +927,10 @@ export default function GaleriaEdiciones({
           </p>
         </div>
       )}
+
+      {/* =================================================
+          MODAL
+          ================================================= */}
 
       {edicionSeleccionada && (
         <div
@@ -686,20 +946,32 @@ export default function GaleriaEdiciones({
         >
           <div className="fixed inset-y-0 left-0 right-0 lg:left-72">
             <div className="flex h-full flex-col">
-              {/* HEADER */}
+
+              {/* =================================================
+                  HEADER
+                  ================================================= */}
+
               <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-black/80 px-5 py-4 backdrop-blur md:px-8">
+
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-400">
                     Galería
                   </p>
 
                   <h2 className="mt-1 text-xl font-black text-white md:text-2xl">
-                    {edicionSeleccionada.eventoNombre}{" "}
-                    {edicionSeleccionada.año}
+                    {
+                      edicionSeleccionada.eventoNombre
+                    }{" "}
+                    {
+                      edicionSeleccionada.año
+                    }
                   </h2>
                 </div>
 
                 <div className="flex items-center gap-2">
+
+                  {/* BOTONES NORMALES */}
+
                   {usuarioLogeado &&
                     !modoSeleccion && (
                       <>
@@ -723,7 +995,9 @@ export default function GaleriaEdiciones({
                           onClick={
                             abrirSelectorFotos
                           }
-                          disabled={subiendo}
+                          disabled={
+                            subiendo
+                          }
                           className="rounded-full bg-white px-4 py-2 text-xs font-black text-black transition hover:bg-violet-200 disabled:cursor-not-allowed disabled:opacity-50 md:px-5"
                         >
                           {subiendo
@@ -745,6 +1019,8 @@ export default function GaleriaEdiciones({
                         />
                       </>
                     )}
+
+                  {/* MODO SELECCIÓN */}
 
                   {usuarioLogeado &&
                     modoSeleccion && (
@@ -806,6 +1082,8 @@ export default function GaleriaEdiciones({
                       </>
                     )}
 
+                  {/* CERRAR */}
+
                   <button
                     type="button"
                     onClick={
@@ -813,7 +1091,8 @@ export default function GaleriaEdiciones({
                     }
                     disabled={
                       subiendo ||
-                      eliminando
+                      eliminando ||
+                      cambiandoPortada
                     }
                     aria-label="Cerrar galería"
                     className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-2xl text-zinc-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white disabled:opacity-40"
@@ -823,9 +1102,13 @@ export default function GaleriaEdiciones({
                 </div>
               </div>
 
-              {/* MENSAJES */}
+              {/* =================================================
+                  MENSAJES
+                  ================================================= */}
+
               {(mensaje || error) && (
                 <div className="shrink-0 border-b border-white/10 bg-black/80 px-5 py-3 text-center backdrop-blur md:px-8">
+
                   {mensaje && (
                     <p className="text-sm font-semibold text-emerald-400">
                       {mensaje}
@@ -837,16 +1120,22 @@ export default function GaleriaEdiciones({
                       {error}
                     </p>
                   )}
+
                 </div>
               )}
 
+              {/* =================================================
+                  MODO SELECCIÓN
+                  ================================================= */}
+
               {modoSeleccion ? (
-                /* MODO SELECCIÓN */
                 <div className="min-h-0 flex-1 overflow-y-auto bg-black/50 p-5 md:p-8">
+
                   {edicionSeleccionada
                     .fotos.length > 0 ? (
                     <>
                       <div className="mx-auto mb-6 flex max-w-7xl items-center justify-between">
+
                         <p className="text-sm text-zinc-400">
                           <span className="font-bold text-white">
                             {
@@ -865,9 +1154,11 @@ export default function GaleriaEdiciones({
                         <p className="hidden text-xs text-zinc-600 md:block">
                           Haz clic sobre las fotos para seleccionar
                         </p>
+
                       </div>
 
                       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+
                         {edicionSeleccionada.fotos.map(
                           (foto) => {
                             const seleccionada =
@@ -907,6 +1198,14 @@ export default function GaleriaEdiciones({
                                   }`}
                                 />
 
+                                {/* INDICADOR PORTADA */}
+
+                                {foto.portada && (
+                                  <div className="absolute left-2 top-2 rounded-full bg-yellow-400 px-2 py-1 text-[9px] font-black text-black">
+                                    ⭐ PORTADA
+                                  </div>
+                                )}
+
                                 <div
                                   className={`absolute inset-0 transition ${
                                     seleccionada
@@ -928,10 +1227,12 @@ export default function GaleriaEdiciones({
                             );
                           }
                         )}
+
                       </div>
                     </>
                   ) : (
                     <div className="flex min-h-full items-center justify-center">
+
                       <div className="text-center">
                         <p className="text-6xl">
                           📷
@@ -941,14 +1242,20 @@ export default function GaleriaEdiciones({
                           No hay fotografías para seleccionar.
                         </p>
                       </div>
+
                     </div>
                   )}
+
                 </div>
               ) : edicionSeleccionada.fotos
                   .length > 0 ? (
                 <>
-                  {/* VISOR */}
+                  {/* =================================================
+                      VISOR
+                      ================================================= */}
+
                   <div className="relative flex min-h-0 flex-1 items-center justify-center p-4 md:p-8">
+
                     <img
                       src={
                         edicionSeleccionada
@@ -968,6 +1275,19 @@ export default function GaleriaEdiciones({
                       }
                       className="max-h-full max-w-full object-contain"
                     />
+
+                    {/* INDICADOR PORTADA */}
+
+                    {edicionSeleccionada
+                      .fotos[
+                      fotoActual
+                    ]?.portada && (
+                      <div className="absolute left-6 top-6 rounded-full bg-yellow-400 px-4 py-2 text-xs font-black uppercase tracking-[0.15em] text-black shadow-lg">
+                        ⭐ PORTADA ACTUAL
+                      </div>
+                    )}
+
+                    {/* ANTERIOR / SIGUIENTE */}
 
                     {edicionSeleccionada
                       .fotos.length > 1 && (
@@ -995,10 +1315,62 @@ export default function GaleriaEdiciones({
                         </button>
                       </>
                     )}
+
+                    {/* =================================================
+                        BOTÓN PORTADA
+                        ================================================= */}
+
+                    {usuarioLogeado && (
+                      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const foto =
+                              edicionSeleccionada
+                                .fotos[
+                                fotoActual
+                              ];
+
+                            if (foto) {
+                              establecerPortada(
+                                foto
+                              );
+                            }
+                          }}
+                          disabled={
+                            cambiandoPortada
+                          }
+                          className={`rounded-full border px-6 py-3 text-xs font-black uppercase tracking-[0.15em] shadow-xl backdrop-blur transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            edicionSeleccionada
+                              .fotos[
+                              fotoActual
+                            ]?.portada
+                              ? "border-yellow-400 bg-yellow-400 text-black"
+                              : "border-white/20 bg-black/80 text-white hover:border-yellow-400 hover:bg-yellow-400/10 hover:text-yellow-300"
+                          }`}
+                        >
+                          {cambiandoPortada
+                            ? "GUARDANDO..."
+                            : edicionSeleccionada
+                                .fotos[
+                                fotoActual
+                              ]?.portada
+                              ? "⭐ PORTADA ACTUAL"
+                              : "⭐ USAR COMO PORTADA"}
+                        </button>
+
+                      </div>
+                    )}
+
                   </div>
 
-                  {/* MINIATURAS */}
+                  {/* =================================================
+                      MINIATURAS
+                      ================================================= */}
+
                   <div className="shrink-0 border-t border-white/10 bg-black/80 px-4 py-4 backdrop-blur md:px-8">
+
                     <div className="mb-4 flex items-center justify-center">
                       <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm font-semibold text-zinc-300">
                         {fotoActual + 1} /{" "}
@@ -1010,6 +1382,7 @@ export default function GaleriaEdiciones({
                     </div>
 
                     <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto pb-1">
+
                       {edicionSeleccionada.fotos.map(
                         (
                           foto,
@@ -1035,6 +1408,7 @@ export default function GaleriaEdiciones({
                                 : "border-transparent opacity-50 hover:opacity-100"
                             }`}
                           >
+
                             <img
                               src={
                                 foto.imagen
@@ -1042,16 +1416,29 @@ export default function GaleriaEdiciones({
                               alt=""
                               className="h-full w-full object-cover"
                             />
+
+                            {foto.portada && (
+                              <div className="absolute bottom-1 left-1 rounded-full bg-yellow-400 px-1.5 py-0.5 text-[8px] font-black text-black">
+                                ⭐
+                              </div>
+                            )}
+
                           </button>
                         )
                       )}
+
                     </div>
                   </div>
                 </>
               ) : (
-                /* SIN FOTOS */
+                /* =================================================
+                   SIN FOTOS
+                   ================================================= */
+
                 <div className="flex flex-1 items-center justify-center p-8 text-center">
+
                   <div>
+
                     {edicionSeleccionada.eventoLogo && (
                       <img
                         src={
@@ -1084,15 +1471,21 @@ export default function GaleriaEdiciones({
                           : "+ AGREGAR FOTOS"}
                       </button>
                     )}
+
                   </div>
+
                 </div>
               )}
+
             </div>
           </div>
         </div>
       )}
 
-      {/* INPUT GLOBAL PARA SUBIR FOTOS */}
+      {/* =================================================
+          INPUT GLOBAL
+          ================================================= */}
+
       <input
         ref={inputFotosRef}
         type="file"

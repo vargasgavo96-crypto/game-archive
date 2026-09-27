@@ -3,12 +3,16 @@ import GaleriaEdiciones from "@/app/components/GaleriaEdiciones";
 
 // =====================================================
 // IMPORTANTE:
-// Esta página debe consultar siempre los datos actuales
-// de Supabase y no utilizar una versión cacheada.
+// Esta página siempre consulta los datos actuales
+// directamente desde Supabase.
 // =====================================================
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+// =====================================================
+// TIPOS
+// =====================================================
 
 type Evento = {
   id: number;
@@ -30,7 +34,12 @@ type Foto = {
   descripcion: string | null;
   orden: number | null;
   created_at: string;
+  portada: boolean;
 };
+
+// =====================================================
+// PÁGINA
+// =====================================================
 
 export default async function GaleriaPage() {
   const [
@@ -38,9 +47,9 @@ export default async function GaleriaPage() {
     { data: edicionesData, error: edicionesError },
     { data: fotosData, error: fotosError },
   ] = await Promise.all([
-    // =====================================================
+    // ===================================================
     // EVENTOS
-    // =====================================================
+    // ===================================================
 
     supabase
       .from("eventos")
@@ -49,25 +58,25 @@ export default async function GaleriaPage() {
         ascending: true,
       }),
 
-    // =====================================================
+    // ===================================================
     // EDICIONES
-    // =====================================================
+    // ===================================================
 
     supabase
       .from("ediciones")
-      .select("*")
+      .select("id, evento_id, año, fecha")
       .order("fecha", {
         ascending: false,
       }),
 
-    // =====================================================
+    // ===================================================
     // FOTOS
-    // =====================================================
+    // ===================================================
 
     supabase
       .from("galerias")
       .select(
-        "id, edicion_id, imagen, descripcion, orden, created_at"
+        "id, edicion_id, imagen, descripcion, orden, created_at, portada"
       )
       .order("orden", {
         ascending: true,
@@ -173,14 +182,24 @@ export default async function GaleriaPage() {
 
       return {
         id: edicion.id,
+
         eventoId: evento.id,
+
         eventoNombre: evento.nombre,
+
         eventoLogo: evento.logo,
+
         año: edicion.año,
+
         fecha: edicion.fecha,
 
-        // AQUÍ se utilizan las fotos actuales
-        // directamente desde Supabase.
+        // =================================================
+        // FOTOS ACTUALES DESDE SUPABASE
+        //
+        // Cada foto incluye:
+        // portada: true / false
+        // =================================================
+
         fotos:
           mapaFotos.get(edicion.id) ?? [],
       };

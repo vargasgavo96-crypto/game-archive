@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import GaleriaFotos from "@/app/components/GaleriaFotos";
 import EditarTextoEdicion from "@/app/components/EditarTextoEdicion";
+import EditarFotoHalloweenHistorico from "@/app/components/EditarFotoHalloweenHistorico";
 
 type Evento = {
   id: number;
@@ -27,6 +28,15 @@ type ParticipanteHistorico = {
 type EdicionHistorica = {
   año: number;
   participantes: ParticipanteHistorico[];
+};
+
+type HalloweenHistorico = {
+  id: number;
+  año: number;
+  posicion: number;
+  nombre: string;
+  persona_id: number | null;
+  imagen: string | null;
 };
 
 const fotosAmigxs: Record<number, string> = {
@@ -217,6 +227,7 @@ function posicionTexto(posicion: number) {
   if (posicion === 1) return "1.º LUGAR";
   if (posicion === 2) return "2.º LUGAR";
   if (posicion === 3) return "3.º LUGAR";
+
   return `${posicion}.º LUGAR`;
 }
 
@@ -224,6 +235,7 @@ function posicionEmoji(posicion: number) {
   if (posicion === 1) return "🥇";
   if (posicion === 2) return "🥈";
   if (posicion === 3) return "🥉";
+
   return "🏆";
 }
 
@@ -287,9 +299,68 @@ export default async function Halloween2024Page() {
     (edicionesData as unknown as Edicion[] | null) ??
     [];
 
-  // Halloween 2024 tiene la galería correcta en la edición con id 4.
-  // Priorizamos esa edición para evitar que otra fila duplicada del mismo
-  // año termine mostrando una galería distinta.
+  /*
+   * FOTOGRAFÍAS HISTÓRICAS
+   *
+   * Cada fotografía pertenece a:
+   *
+   * año + posición
+   *
+   * y no modifica la fotografía de la persona.
+   */
+  const {
+    data: historicoData,
+    error: historicoError,
+  } = await supabase
+    .from("halloween_historico")
+    .select(
+      "id, año, posicion, nombre, persona_id, imagen"
+    )
+    .order("año", {
+      ascending: false,
+    })
+    .order("posicion", {
+      ascending: true,
+    });
+
+  if (historicoError) {
+    console.error(
+      "Error cargando fotos históricas de Halloween:",
+      historicoError
+    );
+  }
+
+  const registrosHistoricos =
+    (historicoData as HalloweenHistorico[] | null) ??
+    [];
+
+  /*
+   * Creamos un mapa:
+   *
+   * 2024-1
+   * 2024-2
+   * 2024-3
+   * 2023-1
+   * 2023-2
+   * 2023-3
+   * etc.
+   */
+  const historicoPorAñoPosicion =
+    new Map<string, HalloweenHistorico>();
+
+  for (const registro of registrosHistoricos) {
+    historicoPorAñoPosicion.set(
+      `${registro.año}-${registro.posicion}`,
+      registro
+    );
+  }
+
+  /*
+   * Ediciones de Supabase.
+   *
+   * Halloween 2024 utiliza específicamente
+   * la edición con id 4 para su galería.
+   */
   const edicionPorAño = new Map<number, Edicion>();
 
   for (const edicion of edicionesSupabase) {
@@ -400,10 +471,27 @@ export default async function Halloween2024Page() {
                         participante.posicion === 1
                     ) ?? null;
 
-                  const imagenGanador =
+                  /*
+                   * Registro histórico del ganador.
+                   */
+                  const registroGanador =
                     ganador
+                      ? historicoPorAñoPosicion.get(
+                          `${edicionHistorica.año}-${ganador.posicion}`
+                        )
+                      : undefined;
+
+                  /*
+                   * La foto histórica tiene prioridad.
+                   *
+                   * Si todavía no hay foto histórica,
+                   * usamos la foto anterior de amigxs.
+                   */
+                  const imagenGanador =
+                    registroGanador?.imagen ??
+                    (ganador
                       ? getImagenParticipante(ganador)
-                      : null;
+                      : null);
 
                   const mostrarPodio =
                     edicionHistorica.año !== 2020;
@@ -460,7 +548,9 @@ export default async function Halloween2024Page() {
                             <EditarTextoEdicion
                               valor={textoEtiqueta}
                               campo="etiqueta"
-                              edicionId={edicionSupabase.id}
+                              edicionId={
+                                edicionSupabase.id
+                              }
                               claseTexto="text-xs font-bold uppercase tracking-[0.25em] text-zinc-600 md:pb-2"
                             />
                           ) : (
@@ -478,7 +568,9 @@ export default async function Halloween2024Page() {
                             <EditarTextoEdicion
                               valor={textoCampeon}
                               campo="campeon"
-                              edicionId={edicionSupabase.id}
+                              edicionId={
+                                edicionSupabase.id
+                              }
                               claseTexto="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400"
                             />
                           ) : (
@@ -497,9 +589,13 @@ export default async function Halloween2024Page() {
 
                               {edicionSupabase ? (
                                 <EditarTextoEdicion
-                                  valor={textoMejorDisfraz}
+                                  valor={
+                                    textoMejorDisfraz
+                                  }
                                   campo="mejor_disfraz"
-                                  edicionId={edicionSupabase.id}
+                                  edicionId={
+                                    edicionSupabase.id
+                                  }
                                   claseTexto="mt-5 text-lg font-semibold text-zinc-300"
                                 />
                               ) : (
@@ -513,6 +609,27 @@ export default async function Halloween2024Page() {
                                   🏆
                                 </span>
                               </div>
+
+                              {/* FOTO DEL GANADOR */}
+                              <EditarFotoHalloweenHistorico
+                                registroId={
+                                  registroGanador?.id ??
+                                  null
+                                }
+                                año={
+                                  edicionHistorica.año
+                                }
+                                posicion={
+                                  ganador.posicion
+                                }
+                                imagen={
+                                  registroGanador?.imagen ??
+                                  null
+                                }
+                                nombre={
+                                  ganador.nombre
+                                }
+                              />
                             </>
                           ) : (
                             <p className="mt-5 text-lg text-zinc-500">
@@ -554,9 +671,13 @@ export default async function Halloween2024Page() {
                           <div className="text-center">
                             {edicionSupabase ? (
                               <EditarTextoEdicion
-                                valor={textoResultados}
+                                valor={
+                                  textoResultados
+                                }
                                 campo="resultados"
-                                edicionId={edicionSupabase.id}
+                                edicionId={
+                                  edicionSupabase.id
+                                }
                                 claseTexto="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400"
                               />
                             ) : (
@@ -569,7 +690,9 @@ export default async function Halloween2024Page() {
                               <EditarTextoEdicion
                                 valor={textoPodio}
                                 campo="podio"
-                                edicionId={edicionSupabase.id}
+                                edicionId={
+                                  edicionSupabase.id
+                                }
                                 claseTexto="mt-3 text-4xl font-black md:text-5xl"
                               />
                             ) : (
@@ -583,7 +706,8 @@ export default async function Halloween2024Page() {
                             {participantes
                               .filter(
                                 (participante) =>
-                                  participante.posicion <= 3
+                                  participante.posicion <=
+                                  3
                               )
                               .sort(
                                 (a, b) =>
@@ -592,7 +716,22 @@ export default async function Halloween2024Page() {
                               )
                               .map(
                                 (participante) => {
+                                  /*
+                                   * Registro específico:
+                                   *
+                                   * año + posición
+                                   */
+                                  const registroHistorico =
+                                    historicoPorAñoPosicion.get(
+                                      `${edicionHistorica.año}-${participante.posicion}`
+                                    );
+
+                                  /*
+                                   * Foto histórica primero.
+                                   * Fallback a /amigxs.
+                                   */
                                   const imagen =
+                                    registroHistorico?.imagen ??
                                     getImagenParticipante(
                                       participante
                                     );
@@ -643,6 +782,27 @@ export default async function Halloween2024Page() {
                                             />
                                           </div>
                                         )}
+
+                                        {/* FOTO DEL PODIO */}
+                                        <EditarFotoHalloweenHistorico
+                                          registroId={
+                                            registroHistorico?.id ??
+                                            null
+                                          }
+                                          año={
+                                            edicionHistorica.año
+                                          }
+                                          posicion={
+                                            participante.posicion
+                                          }
+                                          imagen={
+                                            registroHistorico?.imagen ??
+                                            null
+                                          }
+                                          nombre={
+                                            participante.nombre
+                                          }
+                                        />
                                       </div>
                                     </div>
                                   );
@@ -670,14 +830,20 @@ export default async function Halloween2024Page() {
 
                           {edicionSupabase ? (
                             <EditarTextoEdicion
-                              valor={textoSiguienteEdicion}
+                              valor={
+                                textoSiguienteEdicion
+                              }
                               campo="siguiente_edicion"
-                              edicionId={edicionSupabase.id}
+                              edicionId={
+                                edicionSupabase.id
+                              }
                               claseTexto="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600"
                             />
                           ) : (
                             <span className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-600">
-                              {textoSiguienteEdicion}
+                              {
+                                textoSiguienteEdicion
+                              }
                             </span>
                           )}
 
