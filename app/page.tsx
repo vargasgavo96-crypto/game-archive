@@ -13,7 +13,7 @@ type Edicion = {
   id: number;
   evento_id: number;
   año: string;
-  fecha: string;
+  fecha: string | null;
 };
 
 type Persona = {
@@ -149,8 +149,9 @@ export default async function Home() {
     listaPremios.map((premio) => [premio.edicion_id, premio])
   );
 
+  // CORREGIDO: fecha puede ser null
   const edicionesOrdenadas = [...listaEdiciones].sort((a, b) =>
-    b.fecha.localeCompare(a.fecha)
+    (b.fecha ?? "").localeCompare(a.fecha ?? "")
   );
 
   const edicionesConCampeon = edicionesOrdenadas
@@ -199,13 +200,19 @@ export default async function Home() {
   const edicionesFuturas = [...listaEdiciones]
     .filter(
       (edicion) =>
+        edicion.fecha &&
         new Date(`${edicion.fecha}T00:00:00`).getTime() >= ahora.getTime()
     )
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    // CORREGIDO: fecha puede ser null
+    .sort((a, b) =>
+      (a.fecha ?? "").localeCompare(b.fecha ?? "")
+    );
 
   const edicionDelMes =
     [...listaEdiciones]
       .filter((edicion) => {
+        if (!edicion.fecha) return false;
+
         const fecha = new Date(`${edicion.fecha}T00:00:00`);
 
         return (
@@ -213,7 +220,10 @@ export default async function Home() {
           fecha.getMonth() === mesActual
         );
       })
-      .sort((a, b) => a.fecha.localeCompare(b.fecha))[0] ??
+      // CORREGIDO: fecha puede ser null
+      .sort((a, b) =>
+        (a.fecha ?? "").localeCompare(b.fecha ?? "")
+      )[0] ??
     edicionesFuturas[0] ??
     edicionesOrdenadas[0];
 
@@ -285,7 +295,7 @@ export default async function Home() {
         </section>
 
         {/* EVENTO DEL MES */}
-        {edicionDelMes && eventoDelMes && (
+        {edicionDelMes && eventoDelMes && edicionDelMes.fecha && (
           <section className="border-y border-white/10 bg-black/30">
             <div className="mx-auto max-w-7xl px-6 py-20">
               <div className="mb-10">
