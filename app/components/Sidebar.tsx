@@ -113,6 +113,31 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* ESTILO DE SCROLLBAR */}
+      <style jsx>{`
+        .sidebar-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(124, 58, 237, 0.8) transparent;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 5px;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: rgba(124, 58, 237, 0.8);
+          border-radius: 999px;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(139, 92, 246, 1);
+        }
+      `}</style>
+
       {/* SIDEBAR DESKTOP */}
       <aside className="fixed left-0 top-0 z-50 hidden h-screen w-72 flex-col border-r border-white/10 bg-black/80 backdrop-blur-xl lg:flex">
         <div className="border-b border-white/10 px-6 py-6">
@@ -131,7 +156,7 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-6">
+        <nav className="sidebar-scroll flex-1 overflow-y-auto px-4 py-6">
           <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
             Navegación
           </p>
@@ -276,7 +301,7 @@ export default function Sidebar() {
             aria-label="Cerrar menú"
           />
 
-          <aside className="relative h-full w-[85%] max-w-sm overflow-y-auto border-r border-white/10 bg-zinc-950 shadow-2xl">
+          <aside className="sidebar-scroll relative h-full w-[85%] max-w-sm overflow-y-auto border-r border-white/10 bg-zinc-950 shadow-2xl">
             {/* CABECERA */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
               <Link
