@@ -113,7 +113,7 @@ export default function EditarFotoHalloweenHistorico({
       } = await supabase
         .from("halloween_historico")
         .select(
-          "id, año, posicion, nombre, persona_id, imagen"
+          "*"
         )
         .eq("año", año)
         .eq("posicion", posicion)
