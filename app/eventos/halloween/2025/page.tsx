@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import GaleriaFotos from "@/app/components/GaleriaFotos";
 import EditarTextoEdicion from "@/app/components/EditarTextoEdicion";
+import ParticipantesMascarada from "@/app/components/ParticipantesMascarada";
 
 type Evento = {
   id: number;
@@ -30,6 +31,8 @@ type Participacion = {
   edicion_id: number;
   posicion: number | null;
   puntos_finales: number | null;
+  personaje: string | null;
+  imagen: string | null;
 };
 
 type Premio = {
@@ -108,6 +111,10 @@ function posicionColor(posicion: number | null) {
 }
 
 export default async function Halloween2025Page() {
+  // =====================================================
+  // EVENTO
+  // =====================================================
+
   const {
     data: eventoData,
     error: eventoError,
@@ -141,6 +148,10 @@ export default async function Halloween2025Page() {
     );
   }
 
+  // =====================================================
+  // EDICIONES
+  // =====================================================
+
   const {
     data: edicionesData,
     error: edicionesError,
@@ -159,6 +170,10 @@ export default async function Halloween2025Page() {
       edicionesError
     );
   }
+
+  // =====================================================
+  // EDICIÓN 2025
+  // =====================================================
 
   const edicion = ediciones.find(
     (item) => String(item.año) === "2025"
@@ -182,12 +197,9 @@ export default async function Halloween2025Page() {
 
   const edicionId = edicion.id;
 
-  /*
-   * CONTENIDO EDITABLE
-   *
-   * Los textos se guardan en:
-   * ediciones.contenido
-   */
+  // =====================================================
+  // CONTENIDO EDITABLE
+  // =====================================================
 
   const contenido = edicion.contenido ?? {};
 
@@ -230,10 +242,6 @@ export default async function Halloween2025Page() {
   const participantesDescripcion =
     contenido.participantes_descripcion ??
     "Las personas que fueron parte de Halloween 2025.";
-
-  const participantesProximamente =
-    contenido.participantes_proximamente ??
-    "Participantes próximamente.";
 
   const competenciaEtiqueta =
     contenido.competencia_etiqueta ??
@@ -299,12 +307,24 @@ export default async function Halloween2025Page() {
     contenido.galeria_descripcion ??
     "Fotografías de Halloween 2025.";
 
+  // =====================================================
+  // PARTICIPACIONES
+  // =====================================================
+
   const {
     data: participacionesData,
     error: participacionesError,
   } = await supabase
     .from("participaciones")
-    .select("*")
+    .select(`
+      id,
+      persona_id,
+      edicion_id,
+      posicion,
+      puntos_finales,
+      personaje,
+      imagen
+    `)
     .eq("edicion_id", edicionId)
     .order("posicion", {
       ascending: true,
@@ -322,12 +342,19 @@ export default async function Halloween2025Page() {
     );
   }
 
+  // =====================================================
+  // PERSONAS
+  // =====================================================
+
   const {
     data: personasData,
     error: personasError,
   } = await supabase
     .from("personas")
-    .select("id, nombre, imagen");
+    .select("id, nombre, imagen")
+    .order("nombre", {
+      ascending: true,
+    });
 
   const personas =
     (personasData as unknown as Persona[] | null) ??
@@ -339,6 +366,10 @@ export default async function Halloween2025Page() {
       personasError
     );
   }
+
+  // =====================================================
+  // PREMIO
+  // =====================================================
 
   const {
     data: premioData,
@@ -359,12 +390,20 @@ export default async function Halloween2025Page() {
     );
   }
 
+  // =====================================================
+  // MAPA DE PERSONAS
+  // =====================================================
+
   const personaPorId = new Map(
     personas.map((persona) => [
       persona.id,
       persona,
     ])
   );
+
+  // =====================================================
+  // GANADOR
+  // =====================================================
 
   const participacionGanadora =
     participaciones.find(
@@ -377,8 +416,14 @@ export default async function Halloween2025Page() {
         participacionGanadora.persona_id
       )
     : premio
-      ? personaPorId.get(premio.persona_id)
+      ? personaPorId.get(
+          premio.persona_id
+        )
       : undefined;
+
+  // =====================================================
+  // PODIO
+  // =====================================================
 
   const podio = participaciones
     .filter(
@@ -392,6 +437,10 @@ export default async function Halloween2025Page() {
         (b.posicion ?? 99)
     );
 
+  // =====================================================
+  // IMAGEN GANADOR
+  // =====================================================
+
   const imagenGanador =
     premio?.imagen ??
     "/campeones/campeonhalloween2025.png";
@@ -399,6 +448,10 @@ export default async function Halloween2025Page() {
   const nombreGanador = ganador
     ? nombreWeb(ganador.nombre)
     : "Ángelo Pérez";
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
     <main
@@ -412,7 +465,10 @@ export default async function Halloween2025Page() {
 
       <div className="relative z-10">
 
-        {/* HERO */}
+        {/* =================================================
+            HERO
+        ================================================= */}
+
         <section className="relative overflow-hidden border-b border-white/10">
 
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.25),_transparent_50%)]" />
@@ -454,7 +510,10 @@ export default async function Halloween2025Page() {
           </div>
         </section>
 
-        {/* INTRODUCCIÓN */}
+        {/* =================================================
+            INTRODUCCIÓN
+        ================================================= */}
+
         <section className="mx-auto max-w-4xl px-6 py-24 text-center">
 
           <EditarTextoEdicion
@@ -500,7 +559,10 @@ export default async function Halloween2025Page() {
           </div>
         </section>
 
-        {/* PARTICIPANTES */}
+        {/* =================================================
+            PARTICIPANTES + DISFRACES
+        ================================================= */}
+
         <section className="border-y border-white/10 bg-black/30">
 
           <div className="mx-auto max-w-7xl px-6 py-24">
@@ -531,96 +593,29 @@ export default async function Halloween2025Page() {
 
             </div>
 
-            {participaciones.length > 0 ? (
-              <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {/* =================================================
+                COMPONENTE DE PARTICIPANTES
+            ================================================= */}
 
-                {participaciones.map(
-                  (participacion) => {
+            <div className="mt-14">
 
-                    const persona =
-                      personaPorId.get(
-                        participacion.persona_id
-                      );
+              <ParticipantesMascarada
+                edicionId={edicionId}
+                personas={personas}
+                participacionesIniciales={
+                  participaciones
+                }
+              />
 
-                    if (!persona) {
-                      return null;
-                    }
-
-                    return (
-                      <div
-                        key={participacion.id}
-                        className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-1 hover:border-orange-500/30"
-                      >
-
-                        <div className="relative h-72 overflow-hidden bg-black">
-
-                          {persona.imagen ? (
-                            <img
-                              src={persona.imagen}
-                              alt={nombreWeb(
-                                persona.nombre
-                              )}
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center">
-                              <span className="text-7xl opacity-20">
-                                👤
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-                        </div>
-
-                        <div className="p-6">
-
-                          <h3 className="text-2xl font-black">
-                            {nombreWeb(
-                              persona.nombre
-                            )}
-                          </h3>
-
-                          <div className="mt-4">
-
-                            <span
-                              className={`inline-flex rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${posicionColor(
-                                participacion.posicion
-                              )}`}
-                            >
-                              {posicionTexto(
-                                participacion.posicion
-                              )}
-                            </span>
-
-                          </div>
-
-                        </div>
-
-                      </div>
-                    );
-                  }
-                )}
-
-              </div>
-            ) : (
-              <div className="mt-14 rounded-3xl border border-dashed border-white/10 bg-zinc-900/70 p-16 text-center">
-
-                <EditarTextoEdicion
-                  valor={participantesProximamente}
-                  campo="participantes_proximamente"
-                  edicionId={edicionId}
-                  claseTexto="text-sm text-zinc-600"
-                />
-
-              </div>
-            )}
+            </div>
 
           </div>
         </section>
 
-        {/* TORNEO DE DISFRACES */}
+        {/* =================================================
+            TORNEO DE DISFRACES
+        ================================================= */}
+
         <section className="border-b border-white/10 bg-black/40">
 
           <div className="mx-auto max-w-6xl px-6 py-28">
@@ -695,7 +690,10 @@ export default async function Halloween2025Page() {
           </div>
         </section>
 
-        {/* PODIO */}
+        {/* =================================================
+            PODIO
+        ================================================= */}
+
         <section className="mx-auto max-w-6xl px-6 py-28">
 
           <div className="text-center">
@@ -814,7 +812,10 @@ export default async function Halloween2025Page() {
 
         </section>
 
-        {/* CAMPEÓN */}
+        {/* =================================================
+            CAMPEÓN
+        ================================================= */}
+
         <section className="border-y border-white/10 bg-black/50">
 
           <div className="mx-auto max-w-6xl px-6 py-28">
@@ -894,7 +895,10 @@ export default async function Halloween2025Page() {
           </div>
         </section>
 
-        {/* GALERÍA */}
+        {/* =================================================
+            GALERÍA
+        ================================================= */}
+
         <section className="mx-auto max-w-7xl px-6 py-24">
 
           <div className="text-center">
@@ -924,12 +928,17 @@ export default async function Halloween2025Page() {
           </div>
 
           <div className="mt-14">
-            <GaleriaFotos edicionId={edicionId} />
+            <GaleriaFotos
+              edicionId={edicionId}
+            />
           </div>
 
         </section>
 
-        {/* FOOTER */}
+        {/* =================================================
+            FOOTER
+        ================================================= */}
+
         <footer className="border-t border-white/10 bg-black/50 px-6 py-10">
 
           <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-zinc-500 md:flex-row md:items-center md:justify-between">

@@ -1,6 +1,9 @@
 import { supabase } from "@/lib/supabase";
 import EditarTexto from "@/app/components/EditarTexto";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type Evento = {
   id: number;
   nombre: string;
@@ -28,13 +31,13 @@ type Edicion = {
   fecha: string;
 };
 
-type Participacion = {
+type ParticipacionGanadora = {
   edicion_id: number;
   persona_id: number;
   posicion: number | null;
 };
 
-type Persona = {
+type PersonaGanadora = {
   id: number;
   nombre: string;
 };
@@ -54,8 +57,12 @@ function nombreCorto(nombre: string) {
 }
 
 export default async function HalloweenPage() {
+  // =====================================================
+  // EVENTO
+  // =====================================================
+
   const {
-    data: evento,
+    data: eventoData,
     error: eventoError,
   } = await supabase
     .from("eventos")
@@ -78,6 +85,9 @@ export default async function HalloweenPage() {
     .eq("slug", "halloween")
     .single();
 
+  const evento =
+    eventoData as unknown as Evento | null;
+
   if (eventoError || !evento) {
     console.error(
       "Error cargando evento:",
@@ -98,6 +108,10 @@ export default async function HalloweenPage() {
       </main>
     );
   }
+
+  // =====================================================
+  // EDICIONES
+  // =====================================================
 
   const {
     data: edicionesData,
@@ -121,11 +135,25 @@ export default async function HalloweenPage() {
     (edicionesData as unknown as Edicion[] | null) ??
     [];
 
+  // =====================================================
+  // IDS DE LAS EDICIONES
+  // =====================================================
+
   const idsEdiciones = ediciones.map(
     (edicion) => edicion.id
   );
 
-  let participaciones: Participacion[] = [];
+  // =====================================================
+  // GANADORES
+  //
+  // Primero buscamos las participaciones que tienen
+  // posición 1.
+  //
+  // NO dependemos de una relación anidada de Supabase.
+  // =====================================================
+
+  let participacionesGanadoras: ParticipacionGanadora[] =
+    [];
 
   if (idsEdiciones.length > 0) {
     const {
@@ -136,7 +164,10 @@ export default async function HalloweenPage() {
       .select(
         "edicion_id, persona_id, posicion"
       )
-      .in("edicion_id", idsEdiciones)
+      .in(
+        "edicion_id",
+        idsEdiciones
+      )
       .eq("posicion", 1);
 
     if (participacionesError) {
@@ -146,30 +177,41 @@ export default async function HalloweenPage() {
       );
     }
 
-    participaciones =
-      (participacionesData as unknown as Participacion[] | null) ??
+    participacionesGanadoras =
+      (participacionesData as ParticipacionGanadora[] | null) ??
       [];
   }
 
-  const idsPersonas = Array.from(
-    new Set(
-      participaciones.map(
-        (participacion) =>
-          participacion.persona_id
+  // =====================================================
+  // PERSONAS GANADORAS
+  // =====================================================
+
+  const idsPersonasGanadoras =
+    Array.from(
+      new Set(
+        participacionesGanadoras.map(
+          (participacion) =>
+            participacion.persona_id
+        )
       )
-    )
-  );
+    );
 
-  let personas: Persona[] = [];
+  let personasGanadoras: PersonaGanadora[] =
+    [];
 
-  if (idsPersonas.length > 0) {
+  if (
+    idsPersonasGanadoras.length > 0
+  ) {
     const {
       data: personasData,
       error: personasError,
     } = await supabase
       .from("personas")
       .select("id, nombre")
-      .in("id", idsPersonas);
+      .in(
+        "id",
+        idsPersonasGanadoras
+      );
 
     if (personasError) {
       console.error(
@@ -178,43 +220,74 @@ export default async function HalloweenPage() {
       );
     }
 
-    personas =
-      (personasData as unknown as Persona[] | null) ??
+    personasGanadoras =
+      (personasData as PersonaGanadora[] | null) ??
       [];
   }
 
-  const personaPorId = new Map(
-    personas.map((persona) => [
+  // =====================================================
+  // MAPA DE PERSONAS
+  // =====================================================
+
+  const personaPorId =
+    new Map<number, PersonaGanadora>();
+
+  for (const persona of personasGanadoras) {
+    personaPorId.set(
       persona.id,
-      persona,
-    ])
-  );
+      persona
+    );
+  }
 
-  const ganadorPorEdicion = new Map(
-    participaciones.map(
-      (participacion) => [
+  // =====================================================
+  // MAPA DE GANADORES
+  //
+  // edicion_id -> persona ganadora
+  // =====================================================
+
+  const ganadorPorEdicion =
+    new Map<number, PersonaGanadora>();
+
+  for (
+    const participacion
+    of participacionesGanadoras
+  ) {
+    const persona =
+      personaPorId.get(
+        participacion.persona_id
+      );
+
+    if (persona) {
+      ganadorPorEdicion.set(
         participacion.edicion_id,
-        personaPorId.get(
-          participacion.persona_id
-        ),
-      ]
-    )
-  );
+        persona
+      );
+    }
+  }
 
-  const edicionesNormales = ediciones.filter(
-    (edicion) => Number(edicion.año) >= 2025
-  );
+  // =====================================================
+  // EDICIONES NORMALES
+  // =====================================================
 
-  const existeArchivoHistorico = ediciones.some(
-    (edicion) => Number(edicion.año) <= 2024
-  );
+  const edicionesNormales =
+    ediciones.filter(
+      (edicion) =>
+        Number(edicion.año) >= 2025
+    );
 
-  /*
-   * TEXTOS POR DEFECTO
-   *
-   * Si algún campo está vacío en Supabase,
-   * mantenemos el texto que ya tenía la página.
-   */
+  // =====================================================
+  // ARCHIVO HISTÓRICO
+  // =====================================================
+
+  const existeArchivoHistorico =
+    ediciones.some(
+      (edicion) =>
+        Number(edicion.año) <= 2024
+    );
+
+  // =====================================================
+  // TEXTOS POR DEFECTO
+  // =====================================================
 
   const historiaInicial =
     evento.historia?.trim() ||
@@ -254,6 +327,10 @@ disfrutar esta fecha junto a nuestros amigos.`;
     evento.disfraces_subtexto?.trim() ||
     "Una competencia para poner a prueba la creatividad, originalidad y puesta en escena.";
 
+  // =====================================================
+  // INTERFAZ
+  // =====================================================
+
   return (
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
@@ -266,9 +343,9 @@ disfrutar esta fecha junto a nuestros amigos.`;
 
       <div className="relative z-10">
 
-        {/* =====================================================
+        {/* =================================================
             HERO
-        ===================================================== */}
+        ================================================= */}
 
         <section className="relative overflow-hidden border-b border-white/10">
 
@@ -288,16 +365,12 @@ disfrutar esta fecha junto a nuestros amigos.`;
               Celebración
             </p>
 
-            {/* NOMBRE */}
-
             <EditarTexto
               valor={evento.nombre}
               campo="nombre"
               eventoId={evento.id}
               claseTexto="mt-4 text-6xl font-black uppercase tracking-tight md:text-8xl"
             />
-
-            {/* DESCRIPCIÓN */}
 
             <EditarTexto
               valor={evento.descripcion}
@@ -310,9 +383,9 @@ disfrutar esta fecha junto a nuestros amigos.`;
           </div>
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             NUESTRA CELEBRACIÓN
-        ===================================================== */}
+        ================================================= */}
 
         <section className="mx-auto max-w-5xl px-6 py-24">
 
@@ -325,8 +398,6 @@ disfrutar esta fecha junto a nuestros amigos.`;
             <h2 className="mt-4 text-4xl font-bold md:text-5xl">
               UNA NOCHE PARA CELEBRAR
             </h2>
-
-            {/* HISTORIA */}
 
             <div className="mt-8">
 
@@ -342,15 +413,13 @@ disfrutar esta fecha junto a nuestros amigos.`;
 
           </div>
 
-          {/* =====================================================
+          {/* =================================================
               TARJETAS
-          ===================================================== */}
+          ================================================= */}
 
           <div className="mt-16 grid gap-6 md:grid-cols-2">
 
-            {/* =================================================
-                JUEGOS
-            ================================================= */}
+            {/* JUEGOS */}
 
             <div className="rounded-3xl border border-orange-500/20 bg-black/50 p-8 backdrop-blur-sm transition duration-300 hover:border-orange-500/40 hover:bg-black/60">
 
@@ -358,16 +427,12 @@ disfrutar esta fecha junto a nuestros amigos.`;
                 🎃
               </div>
 
-              {/* TÍTULO EDITABLE */}
-
               <EditarTexto
                 valor={juegosTitulo}
                 campo="juegos_titulo"
                 eventoId={evento.id}
                 claseTexto="mt-6 text-2xl font-bold"
               />
-
-              {/* DESCRIPCIÓN EDITABLE */}
 
               <EditarTexto
                 valor={juegosDescripcion}
@@ -379,9 +444,7 @@ disfrutar esta fecha junto a nuestros amigos.`;
 
             </div>
 
-            {/* =================================================
-                ORGANIZADOR
-            ================================================= */}
+            {/* ORGANIZADOR */}
 
             <div className="rounded-3xl border border-orange-500/20 bg-black/50 p-8 backdrop-blur-sm transition duration-300 hover:border-orange-500/40 hover:bg-black/60">
 
@@ -389,16 +452,12 @@ disfrutar esta fecha junto a nuestros amigos.`;
                 👻
               </div>
 
-              {/* TÍTULO EDITABLE */}
-
               <EditarTexto
                 valor={organizadorTitulo}
                 campo="organizador_titulo"
                 eventoId={evento.id}
                 claseTexto="mt-6 text-2xl font-bold"
               />
-
-              {/* DESCRIPCIÓN EDITABLE */}
 
               <EditarTexto
                 valor={organizadorDescripcion}
@@ -414,9 +473,9 @@ disfrutar esta fecha junto a nuestros amigos.`;
 
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             TORNEO DE DISFRACES
-        ===================================================== */}
+        ================================================= */}
 
         <section className="border-y border-white/10 bg-black/30">
 
@@ -424,15 +483,11 @@ disfrutar esta fecha junto a nuestros amigos.`;
 
             <div className="grid items-center gap-12 md:grid-cols-2">
 
-              {/* IZQUIERDA */}
-
               <div>
 
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
                   La gran competencia
                 </p>
-
-                {/* TÍTULO EDITABLE */}
 
                 <EditarTexto
                   valor={disfracesTitulo}
@@ -441,8 +496,6 @@ disfrutar esta fecha junto a nuestros amigos.`;
                   multilinea
                   claseTexto="mt-4 text-4xl font-black md:text-6xl"
                 />
-
-                {/* DESCRIPCIÓN EDITABLE */}
 
                 <EditarTexto
                   valor={disfracesDescripcion}
@@ -453,8 +506,6 @@ disfrutar esta fecha junto a nuestros amigos.`;
                 />
 
               </div>
-
-              {/* DERECHA */}
 
               <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-black/50 p-10">
 
@@ -470,8 +521,6 @@ disfrutar esta fecha junto a nuestros amigos.`;
                     Halloween
                   </p>
 
-                  {/* PREGUNTA EDITABLE */}
-
                   <EditarTexto
                     valor={disfracesPregunta}
                     campo="disfraces_pregunta"
@@ -479,8 +528,6 @@ disfrutar esta fecha junto a nuestros amigos.`;
                     multilinea
                     claseTexto="mt-3 text-3xl font-black"
                   />
-
-                  {/* SUBTEXTO EDITABLE */}
 
                   <EditarTexto
                     valor={disfracesSubtexto}
@@ -500,9 +547,9 @@ disfrutar esta fecha junto a nuestros amigos.`;
 
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             EDICIONES
-        ===================================================== */}
+        ================================================= */}
 
         <section className="mx-auto max-w-7xl px-6 py-24">
 
@@ -634,7 +681,9 @@ disfrutar esta fecha junto a nuestros amigos.`;
                 );
               })}
 
-              {/* EDICIONES HISTÓRICAS */}
+              {/* =================================================
+                  EDICIONES HISTÓRICAS
+              ================================================= */}
 
               {existeArchivoHistorico && (
                 <a
@@ -703,9 +752,9 @@ disfrutar esta fecha junto a nuestros amigos.`;
 
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             FOOTER
-        ===================================================== */}
+        ================================================= */}
 
         <footer className="border-t border-white/10 bg-black/50 px-6 py-10">
 

@@ -25,21 +25,38 @@ export default function GaleriaFotos({
   edicionId,
 }: GaleriaFotosProps) {
   const [fotos, setFotos] = useState<Foto[]>([]);
+  const [cargando, setCargando] = useState(true);
 
-  const [cargando, setCargando] =
-    useState(true);
+  // =====================================================
+  // VISOR
+  // =====================================================
+
+  const [visorAbierto, setVisorAbierto] =
+    useState(false);
 
   const [fotoActual, setFotoActual] =
     useState(0);
 
+  // =====================================================
+  // SESIÓN
+  // =====================================================
+
   const [usuarioLogeado, setUsuarioLogeado] =
+    useState(false);
+
+  // =====================================================
+  // SELECCIÓN
+  // =====================================================
+
+  const [modoSeleccion, setModoSeleccion] =
     useState(false);
 
   const [seleccionadas, setSeleccionadas] =
     useState<number[]>([]);
 
-  const [modoSeleccion, setModoSeleccion] =
-    useState(false);
+  // =====================================================
+  // ESTADOS
+  // =====================================================
 
   const [subiendo, setSubiendo] =
     useState(false);
@@ -65,6 +82,7 @@ export default function GaleriaFotos({
 
   async function cargarFotos() {
     setCargando(true);
+    setError("");
 
     const {
       data,
@@ -92,14 +110,44 @@ export default function GaleriaFotos({
         "No se pudieron cargar las fotografías."
       );
 
+      setFotos([]);
       setCargando(false);
       return;
     }
 
-    setFotos(
-      (data ?? []) as Foto[]
-    );
+    const fotosCargadas =
+      (data ?? []) as Foto[];
 
+    // La portada aparece primero.
+    const ordenadas =
+      [...fotosCargadas].sort(
+        (a, b) => {
+          if (
+            a.portada &&
+            !b.portada
+          ) {
+            return -1;
+          }
+
+          if (
+            !a.portada &&
+            b.portada
+          ) {
+            return 1;
+          }
+
+          if (
+            a.orden !== null &&
+            b.orden !== null
+          ) {
+            return a.orden - b.orden;
+          }
+
+          return 0;
+        }
+      );
+
+    setFotos(ordenadas);
     setCargando(false);
   }
 
@@ -135,18 +183,38 @@ export default function GaleriaFotos({
   }, []);
 
   // =====================================================
-  // CARGAR GALERÍA
+  // CARGAR AL CAMBIAR EDICIÓN
   // =====================================================
 
   useEffect(() => {
     cargarFotos();
 
     setFotoActual(0);
-    setSeleccionadas([]);
+    setVisorAbierto(false);
     setModoSeleccion(false);
+    setSeleccionadas([]);
     setMensaje("");
     setError("");
   }, [edicionId]);
+
+  // =====================================================
+  // BLOQUEAR SCROLL CUANDO EL VISOR ESTÁ ABIERTO
+  // =====================================================
+
+  useEffect(() => {
+    if (visorAbierto) {
+      document.body.style.overflow =
+        "hidden";
+    } else {
+      document.body.style.overflow =
+        "";
+    }
+
+    return () => {
+      document.body.style.overflow =
+        "";
+    };
+  }, [visorAbierto]);
 
   // =====================================================
   // TECLADO
@@ -156,12 +224,16 @@ export default function GaleriaFotos({
     function manejarTeclado(
       event: KeyboardEvent
     ) {
-      if (fotos.length === 0) {
+      if (!visorAbierto) {
         return;
       }
 
       if (modoSeleccion) {
         return;
+      }
+
+      if (event.key === "Escape") {
+        cerrarVisor();
       }
 
       if (event.key === "ArrowRight") {
@@ -185,84 +257,78 @@ export default function GaleriaFotos({
       );
     };
   }, [
-    fotos,
-    fotoActual,
+    visorAbierto,
     modoSeleccion,
+    fotos,
   ]);
 
   // =====================================================
-  // NAVEGACIÓN
+  // ABRIR VISOR
+  // =====================================================
+
+  function abrirVisor(
+    indice: number
+  ) {
+    setFotoActual(indice);
+    setVisorAbierto(true);
+    setModoSeleccion(false);
+    setSeleccionadas([]);
+    setMensaje("");
+    setError("");
+  }
+
+  // =====================================================
+  // CERRAR VISOR
+  // =====================================================
+
+  function cerrarVisor() {
+    if (
+      subiendo ||
+      eliminando ||
+      cambiandoPortada
+    ) {
+      return;
+    }
+
+    setVisorAbierto(false);
+    setModoSeleccion(false);
+    setSeleccionadas([]);
+  }
+
+  // =====================================================
+  // SIGUIENTE FOTO
   // =====================================================
 
   function siguienteFoto() {
-    if (fotos.length === 0) {
+    if (fotos.length <= 1) {
       return;
     }
 
     setFotoActual((actual) =>
-      actual === fotos.length - 1
+      actual >= fotos.length - 1
         ? 0
         : actual + 1
     );
   }
 
+  // =====================================================
+  // FOTO ANTERIOR
+  // =====================================================
+
   function fotoAnterior() {
-    if (fotos.length === 0) {
+    if (fotos.length <= 1) {
       return;
     }
 
     setFotoActual((actual) =>
-      actual === 0
+      actual <= 0
         ? fotos.length - 1
         : actual - 1
     );
   }
 
   // =====================================================
-  // SELECCIÓN
-  // =====================================================
-
-  function alternarSeleccion(
-    fotoId: number
-  ) {
-    setSeleccionadas((actuales) =>
-      actuales.includes(fotoId)
-        ? actuales.filter(
-            (id) => id !== fotoId
-          )
-        : [...actuales, fotoId]
-    );
-  }
-
-  function seleccionarTodas() {
-    const todosLosIds =
-      fotos.map(
-        (foto) => foto.id
-      );
-
-    if (
-      seleccionadas.length ===
-      todosLosIds.length
-    ) {
-      setSeleccionadas([]);
-    } else {
-      setSeleccionadas(todosLosIds);
-    }
-  }
-
-  function cancelarSeleccion() {
-    setSeleccionadas([]);
-    setModoSeleccion(false);
-  }
-
-  function iniciarSeleccion() {
-    setMensaje("");
-    setError("");
-    setModoSeleccion(true);
-  }
-
-  // =====================================================
-  // SUBIR FOTOS
+  // ABRIR SELECTOR DE FOTOS
   // =====================================================
 
   function abrirSelectorFotos() {
@@ -271,6 +337,10 @@ export default function GaleriaFotos({
 
     inputFotosRef.current?.click();
   }
+
+  // =====================================================
+  // SUBIR FOTOS
+  // =====================================================
 
   async function subirFotos(
     event: React.ChangeEvent<HTMLInputElement>
@@ -297,14 +367,14 @@ export default function GaleriaFotos({
     setError("");
 
     try {
-      const archivosImagenes =
+      const imagenes =
         archivos.filter((archivo) =>
-          archivo.type.startsWith("image/")
+          archivo.type.startsWith(
+            "image/"
+          )
         );
 
-      if (
-        archivosImagenes.length === 0
-      ) {
+      if (imagenes.length === 0) {
         setError(
           "Los archivos seleccionados no contienen imágenes válidas."
         );
@@ -318,19 +388,24 @@ export default function GaleriaFotos({
       const nuevasFotos: Foto[] = [];
 
       for (
-        const archivo of archivosImagenes
+        const archivo of imagenes
       ) {
         const extension =
           archivo.name
             .split(".")
             .pop()
-            ?.toLowerCase() || "jpg";
+            ?.toLowerCase() ||
+          "jpg";
 
         const nombreUnico =
           `${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
         const ruta =
           `${edicionId}/${nombreUnico}`;
+
+        // -------------------------------------------------
+        // STORAGE
+        // -------------------------------------------------
 
         const {
           error: uploadError,
@@ -354,6 +429,10 @@ export default function GaleriaFotos({
         } = supabase.storage
           .from("eventos-fotos")
           .getPublicUrl(ruta);
+
+        // -------------------------------------------------
+        // BASE DE DATOS
+        // -------------------------------------------------
 
         const {
           data: fotoInsertada,
@@ -398,7 +477,7 @@ export default function GaleriaFotos({
       setFotos(fotosActualizadas);
 
       if (
-        fotosActualizadas.length > 0
+        nuevasFotos.length > 0
       ) {
         setFotoActual(
           fotosActualizadas.length - 1
@@ -423,13 +502,12 @@ export default function GaleriaFotos({
       );
     } finally {
       setSubiendo(false);
-
       event.target.value = "";
     }
   }
 
   // =====================================================
-  // OBTENER RUTA STORAGE
+  // OBTENER RUTA DE STORAGE
   // =====================================================
 
   function obtenerRutaStorage(
@@ -453,7 +531,63 @@ export default function GaleriaFotos({
   }
 
   // =====================================================
-  // ELIMINAR FOTOS
+  // SELECCIONAR / DESELECCIONAR FOTO
+  // =====================================================
+
+  function alternarSeleccion(
+    fotoId: number
+  ) {
+    setSeleccionadas((actuales) =>
+      actuales.includes(fotoId)
+        ? actuales.filter(
+            (id) => id !== fotoId
+          )
+        : [...actuales, fotoId]
+    );
+  }
+
+  // =====================================================
+  // SELECCIONAR TODAS
+  // =====================================================
+
+  function seleccionarTodas() {
+    if (
+      seleccionadas.length ===
+      fotos.length
+    ) {
+      setSeleccionadas([]);
+      return;
+    }
+
+    setSeleccionadas(
+      fotos.map(
+        (foto) => foto.id
+      )
+    );
+  }
+
+  // =====================================================
+  // INICIAR SELECCIÓN
+  // =====================================================
+
+  function iniciarSeleccion() {
+    setModoSeleccion(true);
+    setSeleccionadas([]);
+    setMensaje("");
+    setError("");
+  }
+
+  // =====================================================
+  // CANCELAR SELECCIÓN
+  // =====================================================
+
+  function cancelarSeleccion() {
+    setModoSeleccion(false);
+    setSeleccionadas([]);
+  }
+
+  // =====================================================
+  // ELIMINAR FOTOS SELECCIONADAS
   // =====================================================
 
   async function eliminarSeleccionadas() {
@@ -472,13 +606,14 @@ export default function GaleriaFotos({
     const cantidad =
       seleccionadas.length;
 
-    const confirmar = window.confirm(
-      `¿Seguro que quieres eliminar ${cantidad} ${
-        cantidad === 1
-          ? "fotografía"
-          : "fotografías"
-      }? Esta acción no se puede deshacer.`
-    );
+    const confirmar =
+      window.confirm(
+        `¿Seguro que quieres eliminar ${cantidad} ${
+          cantidad === 1
+            ? "fotografía"
+            : "fotografías"
+        }? Esta acción no se puede deshacer.`
+      );
 
     if (!confirmar) {
       return;
@@ -495,6 +630,10 @@ export default function GaleriaFotos({
             foto.id
           )
         );
+
+      // -------------------------------------------------
+      // STORAGE
+      // -------------------------------------------------
 
       const rutasStorage =
         fotosAEliminar
@@ -517,15 +656,21 @@ export default function GaleriaFotos({
           error: storageError,
         } = await supabase.storage
           .from("eventos-fotos")
-          .remove(rutasStorage);
+          .remove(
+            rutasStorage
+          );
 
         if (storageError) {
           console.error(
-            "Error eliminando archivos del Storage:",
+            "Error eliminando archivos:",
             storageError
           );
         }
       }
+
+      // -------------------------------------------------
+      // BASE DE DATOS
+      // -------------------------------------------------
 
       const ids =
         fotosAEliminar.map(
@@ -552,7 +697,6 @@ export default function GaleriaFotos({
         );
 
       setFotos(fotosRestantes);
-
       setSeleccionadas([]);
       setModoSeleccion(false);
 
@@ -605,15 +749,19 @@ export default function GaleriaFotos({
       return;
     }
 
+    if (foto.portada) {
+      return;
+    }
+
     setCambiandoPortada(true);
     setMensaje("");
     setError("");
 
     try {
-      /*
-       * Primero quitamos cualquier portada
-       * que exista actualmente para esta edición.
-       */
+      // -------------------------------------------------
+      // QUITAR PORTADA ANTERIOR
+      // -------------------------------------------------
+
       const {
         error: quitarError,
       } = await supabase
@@ -621,44 +769,90 @@ export default function GaleriaFotos({
         .update({
           portada: false,
         })
-        .eq("edicion_id", edicionId)
-        .eq("portada", true);
+        .eq(
+          "edicion_id",
+          edicionId
+        )
+        .eq(
+          "portada",
+          true
+        );
 
       if (quitarError) {
         throw quitarError;
       }
 
-      /*
-       * Después marcamos esta foto
-       * como la nueva portada.
-       */
+      // -------------------------------------------------
+      // NUEVA PORTADA
+      // -------------------------------------------------
+
       const {
-        error: portadaError,
+        error: marcarError,
       } = await supabase
         .from("galerias")
         .update({
           portada: true,
         })
-        .eq("id", foto.id);
+        .eq(
+          "id",
+          foto.id
+        )
+        .eq(
+          "edicion_id",
+          edicionId
+        );
 
-      if (portadaError) {
-        throw portadaError;
+      if (marcarError) {
+        throw marcarError;
       }
 
-      /*
-       * Actualizamos inmediatamente
-       * el estado local.
-       */
-      setFotos((actuales) =>
-        actuales.map(
+      const fotosActualizadas =
+        fotos.map(
           (fotoActual) => ({
             ...fotoActual,
             portada:
               fotoActual.id ===
               foto.id,
           })
-        )
-      );
+        );
+
+      // Mantener portada arriba
+      const ordenadas =
+        [...fotosActualizadas].sort(
+          (a, b) => {
+            if (
+              a.portada &&
+              !b.portada
+            ) {
+              return -1;
+            }
+
+            if (
+              !a.portada &&
+              b.portada
+            ) {
+              return 1;
+            }
+
+            return 0;
+          }
+        );
+
+      setFotos(ordenadas);
+
+      const nuevoIndice =
+        ordenadas.findIndex(
+          (item) =>
+            item.id === foto.id
+        );
+
+      if (
+        nuevoIndice >= 0
+      ) {
+        setFotoActual(
+          nuevoIndice
+        );
+      }
 
       setMensaje(
         "⭐ Portada actualizada correctamente."
@@ -698,7 +892,9 @@ export default function GaleriaFotos({
   if (fotos.length === 0) {
     return (
       <div className="py-12 text-center">
+
         <div className="rounded-3xl border border-dashed border-white/10 bg-black/20 px-6 py-16">
+
           <p className="text-6xl">
             📷
           </p>
@@ -738,18 +934,27 @@ export default function GaleriaFotos({
               {error}
             </p>
           )}
+
         </div>
+
       </div>
     );
   }
 
   // =====================================================
-  // GALERÍA
+  // PRIMERAS 4 FOTOS
   // =====================================================
+
+  const fotosPreview =
+    fotos.slice(0, 4);
 
   const fotoSeleccionada =
     fotos[fotoActual] ??
     fotos[0];
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
     <div className="relative">
@@ -776,41 +981,636 @@ export default function GaleriaFotos({
         {usuarioLogeado && (
           <div className="flex flex-wrap gap-2">
 
-            {!modoSeleccion && (
-              <>
-                <button
-                  type="button"
-                  onClick={
-                    iniciarSeleccion
-                  }
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition hover:bg-white/10"
-                >
-                  SELECCIONAR
-                </button>
+            <button
+              type="button"
+              onClick={
+                abrirSelectorFotos
+              }
+              disabled={subiendo}
+              className="rounded-full bg-white px-5 py-2 text-xs font-black text-black transition hover:bg-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {subiendo
+                ? "SUBIENDO..."
+                : "+ AGREGAR FOTOS"}
+            </button>
 
-                <button
-                  type="button"
-                  onClick={
-                    abrirSelectorFotos
-                  }
-                  disabled={subiendo}
-                  className="rounded-full bg-white px-5 py-2 text-xs font-black text-black transition hover:bg-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {subiendo
-                    ? "SUBIENDO..."
-                    : "+ AGREGAR FOTOS"}
-                </button>
-              </>
+            <button
+              type="button"
+              onClick={
+                iniciarSeleccion
+              }
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition hover:bg-white/10"
+            >
+              SELECCIONAR
+            </button>
+
+          </div>
+        )}
+
+        <input
+          ref={inputFotosRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={subirFotos}
+          className="hidden"
+        />
+
+      </div>
+
+      {/* =================================================
+          MENSAJES
+          ================================================= */}
+
+      {mensaje && (
+        <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-5 py-4 text-center">
+          <p className="text-sm font-semibold text-emerald-400">
+            {mensaje}
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-950/20 px-5 py-4 text-center">
+          <p className="text-sm font-semibold text-red-400">
+            {error}
+          </p>
+        </div>
+      )}
+
+      {/* =================================================
+          MODO SELECCIÓN
+          ================================================= */}
+
+      {modoSeleccion ? (
+        <div>
+
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+
+            <button
+              type="button"
+              onClick={
+                seleccionarTodas
+              }
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition hover:bg-white/10"
+            >
+              {seleccionadas.length ===
+                fotos.length
+                ? "DESELECCIONAR TODAS"
+                : "SELECCIONAR TODAS"}
+            </button>
+
+            <button
+              type="button"
+              onClick={
+                eliminarSeleccionadas
+              }
+              disabled={
+                seleccionadas.length ===
+                  0 ||
+                eliminando
+              }
+              className="rounded-full bg-red-500 px-4 py-2 text-xs font-black text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {eliminando
+                ? "ELIMINANDO..."
+                : `ELIMINAR ${seleccionadas.length}`}
+            </button>
+
+            <button
+              type="button"
+              onClick={
+                cancelarSeleccion
+              }
+              disabled={
+                eliminando
+              }
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-300 transition hover:bg-white/10"
+            >
+              CANCELAR
+            </button>
+
+            <span className="ml-2 text-xs text-zinc-500">
+              {seleccionadas.length}{" "}
+              seleccionadas
+            </span>
+
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+
+            {fotos.map(
+              (foto) => {
+                const seleccionada =
+                  seleccionadas.includes(
+                    foto.id
+                  );
+
+                return (
+                  <button
+                    key={foto.id}
+                    type="button"
+                    onClick={() =>
+                      alternarSeleccion(
+                        foto.id
+                      )
+                    }
+                    className={`group relative aspect-square overflow-hidden rounded-2xl border-2 bg-zinc-900 transition ${
+                      seleccionada
+                        ? "border-violet-400 ring-4 ring-violet-400/20"
+                        : "border-white/10 hover:border-white/30"
+                    }`}
+                  >
+
+                    <img
+                      src={foto.imagen}
+                      alt={
+                        foto.descripcion ??
+                        "Fotografía del evento"
+                      }
+                      className={`h-full w-full object-cover transition ${
+                        seleccionada
+                          ? "scale-95 opacity-60"
+                          : "group-hover:scale-105"
+                      }`}
+                    />
+
+                    {foto.portada && (
+                      <div className="absolute left-3 top-3 rounded-full bg-yellow-400 px-3 py-1 text-[10px] font-black text-black">
+                        ⭐ PORTADA
+                      </div>
+                    )}
+
+                    <div
+                      className={`absolute inset-0 transition ${
+                        seleccionada
+                          ? "bg-violet-500/20"
+                          : "bg-transparent"
+                      }`}
+                    />
+
+                    <div
+                      className={`absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border-2 font-black transition ${
+                        seleccionada
+                          ? "border-violet-300 bg-violet-500 text-white"
+                          : "border-white/60 bg-black/50 text-transparent"
+                      }`}
+                    >
+                      ✓
+                    </div>
+
+                  </button>
+                );
+              }
             )}
 
-            {modoSeleccion && (
-              <>
+          </div>
+
+        </div>
+      ) : (
+        <>
+          {/* =================================================
+              VISTA PREVIA
+              
+              4 FOTOS — 1 FILA — 4 COLUMNAS
+              ================================================= */}
+
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-black">
+
+            <div className="grid grid-cols-4 gap-1">
+
+              {fotosPreview.map(
+                (
+                  foto,
+                  index
+                ) => (
+                  <button
+                    key={foto.id}
+                    type="button"
+                    onClick={() =>
+                      abrirVisor(
+                        index
+                      )
+                    }
+                    className="group relative aspect-square min-w-0 overflow-hidden bg-zinc-900"
+                  >
+
+                    <img
+                      src={foto.imagen}
+                      alt={
+                        foto.descripcion ??
+                        "Fotografía del evento"
+                      }
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+
+                    {/* OSCURECER AL PASAR */}
+
+                    <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/20" />
+
+                    {/* PORTADA */}
+
+                    {foto.portada && (
+                      <div className="absolute left-2 top-2 rounded-full bg-yellow-400 px-2 py-1 text-[9px] font-black text-black shadow-lg">
+                        ⭐
+                      </div>
+                    )}
+
+                    {/* LUPA */}
+
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
+
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-xl backdrop-blur">
+                        🔍
+                      </div>
+
+                    </div>
+
+                  </button>
+                )
+              )}
+
+              {/* ESPACIOS SI HAY MENOS DE 4 */}
+
+              {Array.from({
+                length:
+                  Math.max(
+                    0,
+                    4 -
+                      fotosPreview.length
+                  ),
+              }).map(
+                (_, index) => (
+                  <div
+                    key={`vacio-${index}`}
+                    className="aspect-square bg-zinc-900/70"
+                  />
+                )
+              )}
+
+            </div>
+
+            {fotos.length > 4 && (
+              <button
+                type="button"
+                onClick={() =>
+                  abrirVisor(0)
+                }
+                className="w-full border-t border-white/10 bg-black/70 px-5 py-4 text-center text-sm font-bold text-zinc-300 transition hover:bg-white/5 hover:text-white"
+              >
+                VER LAS{" "}
+                {fotos.length}{" "}
+                FOTOGRAFÍAS →
+              </button>
+            )}
+
+          </div>
+        </>
+      )}
+
+      {/* =====================================================
+          VISOR COMPLETO
+          
+          SE ABRE AL TOCAR UNA DE LAS 4 FOTOS
+          
+          AQUÍ ESTÁN TODAS LAS OPCIONES
+          ===================================================== */}
+
+      {visorAbierto &&
+        !modoSeleccion && (
+          <div
+            className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md"
+            onMouseDown={(event) => {
+              if (
+                event.target ===
+                event.currentTarget
+              ) {
+                cerrarVisor();
+              }
+            }}
+          >
+
+            <div className="flex h-full w-full flex-col">
+
+              {/* =================================================
+                  HEADER DEL VISOR
+                  ================================================= */}
+
+              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-black/80 px-5 py-4 backdrop-blur md:px-8">
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-violet-400">
+                    Recuerdos
+                  </p>
+
+                  <h2 className="mt-1 text-xl font-black text-white md:text-2xl">
+                    GALERÍA
+                  </h2>
+
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {fotoActual + 1}{" "}
+                    /{" "}
+                    {fotos.length}
+                  </p>
+                </div>
+
+                {/* =================================================
+                    CONTROLES
+                    ================================================= */}
+
+                <div className="flex items-center gap-2">
+
+                  {usuarioLogeado && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={
+                          abrirSelectorFotos
+                        }
+                        disabled={
+                          subiendo
+                        }
+                        className="rounded-full bg-white px-4 py-2 text-xs font-black text-black transition hover:bg-violet-200 disabled:opacity-50 md:px-5"
+                      >
+                        {subiendo
+                          ? "SUBIENDO..."
+                          : "+ AGREGAR FOTOS"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={
+                          iniciarSeleccion
+                        }
+                        className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition hover:bg-white/10 sm:block"
+                      >
+                        SELECCIONAR
+                      </button>
+                    </>
+                  )}
+
+                  {/* CERRAR */}
+
+                  <button
+                    type="button"
+                    onClick={
+                      cerrarVisor
+                    }
+                    disabled={
+                      subiendo ||
+                      eliminando ||
+                      cambiandoPortada
+                    }
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-2xl text-zinc-300 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                    aria-label="Cerrar galería"
+                  >
+                    ×
+                  </button>
+
+                </div>
+
+              </div>
+
+              {/* =================================================
+                  MENSAJES
+                  ================================================= */}
+
+              {(mensaje || error) && (
+                <div className="shrink-0 border-b border-white/10 bg-black/80 px-5 py-3 text-center">
+
+                  {mensaje && (
+                    <p className="text-sm font-semibold text-emerald-400">
+                      {mensaje}
+                    </p>
+                  )}
+
+                  {error && (
+                    <p className="text-sm font-semibold text-red-400">
+                      {error}
+                    </p>
+                  )}
+
+                </div>
+              )}
+
+              {/* =================================================
+                  FOTO GRANDE
+                  ================================================= */}
+
+              <div className="relative flex min-h-0 flex-1 items-center justify-center p-4 md:p-8">
+
+                <img
+                  src={
+                    fotoSeleccionada.imagen
+                  }
+                  alt={
+                    fotoSeleccionada.descripcion ??
+                    "Fotografía del evento"
+                  }
+                  className="max-h-full max-w-full object-contain"
+                />
+
+                {/* PORTADA */}
+
+                {fotoSeleccionada.portada && (
+                  <div className="absolute left-6 top-6 rounded-full bg-yellow-400 px-4 py-2 text-xs font-black uppercase tracking-[0.15em] text-black shadow-lg">
+                    ⭐ PORTADA ACTUAL
+                  </div>
+                )}
+
+                {/* =================================================
+                    FOTO ANTERIOR
+                    ================================================= */}
+
+                {fotos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={
+                      fotoAnterior
+                    }
+                    aria-label="Fotografía anterior"
+                    className="absolute left-3 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/70 text-4xl text-white backdrop-blur transition hover:bg-black/90 md:left-8"
+                  >
+                    ‹
+                  </button>
+                )}
+
+                {/* =================================================
+                    FOTO SIGUIENTE
+                    ================================================= */}
+
+                {fotos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={
+                      siguienteFoto
+                    }
+                    aria-label="Siguiente fotografía"
+                    className="absolute right-3 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/70 text-4xl text-white backdrop-blur transition hover:bg-black/90 md:right-8"
+                  >
+                    ›
+                  </button>
+                )}
+
+                {/* =================================================
+                    CAMBIAR PORTADA
+                    ================================================= */}
+
+                {usuarioLogeado && (
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        establecerPortada(
+                          fotoSeleccionada
+                        )
+                      }
+                      disabled={
+                        cambiandoPortada
+                      }
+                      className={`rounded-full border px-6 py-3 text-xs font-black uppercase tracking-[0.15em] shadow-xl backdrop-blur transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        fotoSeleccionada.portada
+                          ? "border-yellow-400 bg-yellow-400 text-black"
+                          : "border-white/20 bg-black/80 text-white hover:border-yellow-400 hover:bg-yellow-400/10 hover:text-yellow-300"
+                      }`}
+                    >
+                      {cambiandoPortada
+                        ? "GUARDANDO..."
+                        : fotoSeleccionada.portada
+                          ? "⭐ PORTADA ACTUAL"
+                          : "⭐ USAR COMO PORTADA"}
+                    </button>
+
+                  </div>
+                )}
+
+              </div>
+
+              {/* =================================================
+                  MINIATURAS
+                  ================================================= */}
+
+              <div className="shrink-0 border-t border-white/10 bg-black/90 px-4 py-4 backdrop-blur md:px-8">
+
+                <div className="mb-3 flex items-center justify-center">
+
+                  <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-zinc-300">
+                    {fotoActual + 1}{" "}
+                    /{" "}
+                    {fotos.length}
+                  </span>
+
+                </div>
+
+                <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto pb-1">
+
+                  {fotos.map(
+                    (
+                      foto,
+                      index
+                    ) => (
+                      <button
+                        key={
+                          foto.id
+                        }
+                        type="button"
+                        onClick={() =>
+                          setFotoActual(
+                            index
+                          )
+                        }
+                        aria-label={`Ver fotografía ${
+                          index + 1
+                        }`}
+                        className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition md:h-20 md:w-28 ${
+                          index ===
+                          fotoActual
+                            ? "border-violet-500 opacity-100"
+                            : "border-transparent opacity-50 hover:opacity-100"
+                        }`}
+                      >
+
+                        <img
+                          src={
+                            foto.imagen
+                          }
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+
+                        {foto.portada && (
+                          <div className="absolute bottom-1 left-1 rounded-full bg-yellow-400 px-1.5 py-0.5 text-[8px] font-black text-black">
+                            ⭐
+                          </div>
+                        )}
+
+                      </button>
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+      {/* =====================================================
+          INPUT
+          ===================================================== */}
+
+      <input
+        ref={inputFotosRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={subirFotos}
+        className="hidden"
+      />
+
+      {/* =====================================================
+          MODAL DE SELECCIÓN
+          
+          Cuando se presiona SELECCIONAR dentro del visor,
+          cerramos el visor y mostramos la selección.
+          ===================================================== */}
+
+      {modoSeleccion && (
+        <div className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-md">
+
+          <div className="flex h-full flex-col">
+
+            {/* HEADER */}
+
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-black/80 px-5 py-4 md:px-8">
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-violet-400">
+                  Galería
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-white md:text-2xl">
+                  SELECCIONAR FOTOS
+                </h2>
+
+                <p className="mt-1 text-xs text-zinc-500">
+                  {seleccionadas.length}{" "}
+                  seleccionadas de{" "}
+                  {fotos.length}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+
                 <button
                   type="button"
                   onClick={
                     seleccionarTodas
                   }
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition hover:bg-white/10"
+                  className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition hover:bg-white/10 sm:block"
                 >
                   {seleccionadas.length ===
                     fotos.length
@@ -847,266 +1647,93 @@ export default function GaleriaFotos({
                 >
                   CANCELAR
                 </button>
-              </>
-            )}
-          </div>
-        )}
 
-        <input
-          ref={inputFotosRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={subirFotos}
-          className="hidden"
-        />
-      </div>
+              </div>
 
-      {/* =================================================
-          MENSAJES
-          ================================================= */}
-
-      {mensaje && (
-        <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-5 py-4 text-center">
-          <p className="text-sm font-semibold text-emerald-400">
-            {mensaje}
-          </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-950/20 px-5 py-4 text-center">
-          <p className="text-sm font-semibold text-red-400">
-            {error}
-          </p>
-        </div>
-      )}
-
-      {/* =================================================
-          MODO SELECCIÓN
-          ================================================= */}
-
-      {modoSeleccion ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {fotos.map((foto) => {
-            const seleccionada =
-              seleccionadas.includes(
-                foto.id
-              );
-
-            return (
-              <button
-                key={foto.id}
-                type="button"
-                onClick={() =>
-                  alternarSeleccion(
-                    foto.id
-                  )
-                }
-                className={`group relative aspect-square overflow-hidden rounded-2xl border-2 bg-zinc-900 transition ${
-                  seleccionada
-                    ? "border-violet-400 ring-4 ring-violet-400/20"
-                    : "border-white/10 hover:border-white/30"
-                }`}
-              >
-                <img
-                  src={foto.imagen}
-                  alt={
-                    foto.descripcion ??
-                    "Foto del evento"
-                  }
-                  className={`h-full w-full object-cover transition ${
-                    seleccionada
-                      ? "scale-95 opacity-70"
-                      : "group-hover:scale-105"
-                  }`}
-                />
-
-                {foto.portada && (
-                  <div className="absolute left-3 top-3 rounded-full bg-yellow-400 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-black">
-                    ⭐ Portada
-                  </div>
-                )}
-
-                <div
-                  className={`absolute inset-0 ${
-                    seleccionada
-                      ? "bg-violet-500/20"
-                      : "bg-black/0"
-                  }`}
-                />
-
-                <div
-                  className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border-2 text-sm font-black ${
-                    seleccionada
-                      ? "border-violet-300 bg-violet-500 text-white"
-                      : "border-white/70 bg-black/50 text-transparent"
-                  }`}
-                >
-                  ✓
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <>
-          {/* =================================================
-              FOTO PRINCIPAL
-              ================================================= */}
-
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black">
-
-            <div className="relative flex min-h-[500px] items-center justify-center bg-black p-4 md:min-h-[650px] md:p-8">
-
-              <img
-                src={
-                  fotoSeleccionada.imagen
-                }
-                alt={
-                  fotoSeleccionada.descripcion ??
-                  "Fotografía del evento"
-                }
-                className="max-h-[70vh] max-w-full object-contain"
-              />
-
-              {/* PORTADA */}
-              {fotoSeleccionada.portada && (
-                <div className="absolute left-6 top-6 rounded-full border border-yellow-400/30 bg-yellow-400 px-4 py-2 text-xs font-black uppercase tracking-[0.15em] text-black shadow-lg">
-                  ⭐ PORTADA ACTUAL
-                </div>
-              )}
-
-              {/* ANTERIOR */}
-              {fotos.length > 1 && (
-                <button
-                  type="button"
-                  onClick={
-                    fotoAnterior
-                  }
-                  aria-label="Fotografía anterior"
-                  className="absolute left-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/70 text-3xl text-white backdrop-blur transition hover:bg-black/90 md:left-8"
-                >
-                  ‹
-                </button>
-              )}
-
-              {/* SIGUIENTE */}
-              {fotos.length > 1 && (
-                <button
-                  type="button"
-                  onClick={
-                    siguienteFoto
-                  }
-                  aria-label="Siguiente fotografía"
-                  className="absolute right-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/70 text-3xl text-white backdrop-blur transition hover:bg-black/90 md:right-8"
-                >
-                  ›
-                </button>
-              )}
-
-              {/* =================================================
-                  BOTÓN PORTADA
-                  ================================================= */}
-
-              {usuarioLogeado && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      establecerPortada(
-                        fotoSeleccionada
-                      )
-                    }
-                    disabled={
-                      cambiandoPortada
-                    }
-                    className={`rounded-full border px-5 py-3 text-xs font-black uppercase tracking-[0.15em] backdrop-blur transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                      fotoSeleccionada.portada
-                        ? "border-yellow-400/50 bg-yellow-400 text-black"
-                        : "border-white/20 bg-black/80 text-white hover:border-yellow-400 hover:bg-yellow-400/10 hover:text-yellow-300"
-                    }`}
-                  >
-                    {cambiandoPortada
-                      ? "GUARDANDO..."
-                      : fotoSeleccionada.portada
-                        ? "⭐ PORTADA ACTUAL"
-                        : "⭐ USAR COMO PORTADA"}
-                  </button>
-
-                </div>
-              )}
             </div>
 
-            {/* =================================================
-                INFORMACIÓN FOTO
-                ================================================= */}
+            {/* FOTOS */}
 
-            <div className="border-t border-white/10 bg-zinc-950/90 px-5 py-4 md:px-8">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-8">
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 
-                <p className="text-sm text-zinc-400">
-                  {fotoActual + 1}{" "}
-                  /{" "}
-                  {fotos.length}
-                </p>
+                {fotos.map(
+                  (foto) => {
+                    const seleccionada =
+                      seleccionadas.includes(
+                        foto.id
+                      );
 
-                {fotoSeleccionada.descripcion && (
-                  <p className="text-sm text-zinc-500">
-                    {
-                      fotoSeleccionada.descripcion
-                    }
-                  </p>
+                    return (
+                      <button
+                        key={foto.id}
+                        type="button"
+                        onClick={() =>
+                          alternarSeleccion(
+                            foto.id
+                          )
+                        }
+                        className={`group relative aspect-square overflow-hidden rounded-2xl border-2 bg-zinc-900 transition ${
+                          seleccionada
+                            ? "border-violet-400 ring-4 ring-violet-400/20"
+                            : "border-white/10 hover:border-white/30"
+                        }`}
+                      >
+
+                        <img
+                          src={
+                            foto.imagen
+                          }
+                          alt={
+                            foto.descripcion ??
+                            "Fotografía del evento"
+                          }
+                          className={`h-full w-full object-cover transition ${
+                            seleccionada
+                              ? "scale-95 opacity-60"
+                              : "group-hover:scale-105"
+                          }`}
+                        />
+
+                        {foto.portada && (
+                          <div className="absolute left-2 top-2 rounded-full bg-yellow-400 px-2 py-1 text-[8px] font-black text-black">
+                            ⭐
+                          </div>
+                        )}
+
+                        <div
+                          className={`absolute inset-0 transition ${
+                            seleccionada
+                              ? "bg-violet-500/20"
+                              : "bg-transparent"
+                          }`}
+                        />
+
+                        <div
+                          className={`absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border-2 font-black ${
+                            seleccionada
+                              ? "border-violet-300 bg-violet-500 text-white"
+                              : "border-white/60 bg-black/50 text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </div>
+
+                      </button>
+                    );
+                  }
                 )}
 
               </div>
 
             </div>
-          </div>
-
-          {/* =================================================
-              MINIATURAS
-              ================================================= */}
-
-          <div className="mt-6 flex gap-2 overflow-x-auto pb-2">
-
-            {fotos.map(
-              (foto, index) => (
-                <button
-                  key={foto.id}
-                  type="button"
-                  onClick={() =>
-                    setFotoActual(
-                      index
-                    )
-                  }
-                  className={`relative h-20 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition ${
-                    index ===
-                    fotoActual
-                      ? "border-violet-400 opacity-100"
-                      : "border-transparent opacity-50 hover:opacity-100"
-                  }`}
-                >
-                  <img
-                    src={foto.imagen}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-
-                  {foto.portada && (
-                    <div className="absolute bottom-1 left-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[8px] font-black text-black">
-                      ⭐
-                    </div>
-                  )}
-                </button>
-              )
-            )}
 
           </div>
-        </>
+
+        </div>
       )}
+
     </div>
   );
 }

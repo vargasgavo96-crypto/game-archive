@@ -13,7 +13,7 @@ type Edicion = {
   id: number;
   evento_id: number;
   año: string;
-  fecha: string;
+  fecha: string | null;
 };
 
 type Persona = {
@@ -130,12 +130,16 @@ export default async function EventosPage() {
   }
 
   const listaEventos: Evento[] = eventos ?? [];
+
   const listaEdiciones: Edicion[] =
     ediciones ?? [];
+
   const listaPersonas: Persona[] =
     personas ?? [];
+
   const listaParticipaciones: Participacion[] =
     participaciones ?? [];
+
   const listaPremios: Premio[] =
     premios ?? [];
 
@@ -177,12 +181,18 @@ export default async function EventosPage() {
       <div className="fixed inset-0 z-0 bg-black/55" />
 
       <div className="relative z-10">
+
+        {/* ================================================== */}
         {/* HEADER */}
+        {/* ================================================== */}
 
         <section className="border-b border-white/10">
           <div className="mx-auto max-w-7xl px-6 py-24">
+
             <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+
               <div>
+
                 <p className="text-sm font-semibold uppercase tracking-[0.4em] text-violet-400">
                   Archivo
                 </p>
@@ -196,11 +206,13 @@ export default async function EventosPage() {
                   sus historias y todas las ediciones que han marcado
                   nuestra historia.
                 </p>
+
               </div>
 
               {/* CREAR EVENTO */}
 
               <div className="shrink-0">
+
                 <AdminEventControls
                   permiso="eventos.crear"
                   href="/eventos/nuevo"
@@ -208,16 +220,34 @@ export default async function EventosPage() {
                   icon="＋"
                   variant="gold"
                 />
+
               </div>
+
             </div>
+
           </div>
         </section>
 
+        {/* ================================================== */}
         {/* EVENTOS */}
+        {/* ================================================== */}
 
         <section className="mx-auto max-w-7xl px-6 py-24">
+
           <div className="grid gap-8 md:grid-cols-2">
+
             {listaEventos.map((evento) => {
+
+              /*
+               * IMPORTANTE:
+               *
+               * La última edición se determina por AÑO,
+               * no por FECHA.
+               *
+               * Esto permite que una edición pueda tener
+               * fecha NULL y aun así ser la más reciente.
+               */
+
               const edicionesEvento =
                 listaEdiciones
                   .filter(
@@ -225,10 +255,10 @@ export default async function EventosPage() {
                       edicion.evento_id ===
                       evento.id
                   )
-                  .sort((a, b) =>
-                    b.fecha.localeCompare(
-                      a.fecha
-                    )
+                  .sort(
+                    (a, b) =>
+                      Number(b.año) -
+                      Number(a.año)
                   );
 
               const ultimaEdicion =
@@ -262,13 +292,18 @@ export default async function EventosPage() {
                   key={evento.id}
                   className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
                 >
+
+                  {/* ================================================== */}
                   {/* LOGO */}
+                  {/* ================================================== */}
 
                   <a
                     href={`/eventos/${evento.slug}`}
                     className="block"
                   >
+
                     <div className="flex h-80 items-center justify-center bg-black/40 p-12">
+
                       {evento.logo ? (
                         <img
                           src={evento.logo}
@@ -280,18 +315,25 @@ export default async function EventosPage() {
                           🎮
                         </span>
                       )}
+
                     </div>
+
                   </a>
 
+                  {/* ================================================== */}
                   {/* INFORMACIÓN */}
+                  {/* ================================================== */}
 
                   <div className="p-8">
+
                     <div className="flex items-center justify-between gap-4">
+
                       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
                         Evento
                       </p>
 
                       <div className="flex items-center gap-2">
+
                         <p className="text-sm text-zinc-500">
                           {edicionesEvento.length}{" "}
                           {edicionesEvento.length ===
@@ -308,13 +350,16 @@ export default async function EventosPage() {
                           label="Editar"
                           icon="✏️"
                         />
+
                       </div>
+
                     </div>
 
                     <a
                       href={`/eventos/${evento.slug}`}
                       className="block"
                     >
+
                       <h2 className="mt-3 text-4xl font-bold">
                         {evento.nombre}
                       </h2>
@@ -323,12 +368,17 @@ export default async function EventosPage() {
                         {evento.descripcion}
                       </p>
 
+                      {/* ================================================== */}
                       {/* ÚLTIMA EDICIÓN */}
+                      {/* ================================================== */}
 
                       {ultimaEdicion && (
                         <div className="mt-8 border-t border-white/10 pt-6">
+
                           <div className="flex items-center justify-between">
+
                             <div>
+
                               <p className="text-xs uppercase tracking-widest text-zinc-500">
                                 Última edición
                               </p>
@@ -336,10 +386,12 @@ export default async function EventosPage() {
                               <p className="mt-1 text-lg font-semibold">
                                 {ultimaEdicion.año}
                               </p>
+
                             </div>
 
                             {ganador && (
                               <div className="text-right">
+
                                 <p className="text-xs uppercase tracking-widest text-zinc-500">
                                   Último campeón
                                 </p>
@@ -349,33 +401,59 @@ export default async function EventosPage() {
                                     ganador.nombre
                                   )}
                                 </p>
+
                               </div>
                             )}
+
                           </div>
+
                         </div>
                       )}
 
+                      {/* ================================================== */}
+                      {/* ENTRAR AL EVENTO */}
+                      {/* ================================================== */}
+
                       <div className="mt-8 border-t border-white/10 pt-6">
+
                         <span className="text-sm font-semibold transition group-hover:text-violet-400">
                           EXPLORAR EVENTO →
                         </span>
+
                       </div>
+
                     </a>
+
                   </div>
+
                 </div>
               );
             })}
+
           </div>
+
         </section>
 
+        {/* ================================================== */}
         {/* FOOTER */}
+        {/* ================================================== */}
 
         <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
+
           <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
-            <p>THE GAME ARCHIVE</p>
-            <p>Juegos · Eventos · Campeones</p>
+
+            <p>
+              THE GAME ARCHIVE
+            </p>
+
+            <p>
+              Juegos · Eventos · Campeones
+            </p>
+
           </div>
+
         </footer>
+
       </div>
     </main>
   );
