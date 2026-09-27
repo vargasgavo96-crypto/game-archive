@@ -29,6 +29,7 @@ type Foto = {
   descripcion: string | null;
   orden: number | null;
   created_at: string;
+  portada: boolean;
 };
 
 type Premio = {
@@ -131,6 +132,7 @@ export default async function EdicionPage({
         "id, persona_id, edicion_id, nombre, descripcion, imagen"
       )
       .eq("edicion_id", edicion.id),
+
     supabase
       .from("participaciones")
       .select(
@@ -141,10 +143,11 @@ export default async function EdicionPage({
       .order("posicion", {
         ascending: true,
       }),
+
     supabase
       .from("galerias")
       .select(
-        "id, edicion_id, imagen, descripcion, orden, created_at"
+        "id, edicion_id, imagen, descripcion, orden, created_at, portada"
       )
       .eq("edicion_id", edicion.id)
       .order("orden", {
@@ -156,7 +159,10 @@ export default async function EdicionPage({
   ]);
 
   if (fotosError) {
-    console.error("Error cargando la galería:", fotosError);
+    console.error(
+      "Error cargando la galería:",
+      fotosError
+    );
   }
 
   const premios = (premiosData ??
@@ -165,13 +171,18 @@ export default async function EdicionPage({
   const participaciones = (participacionesData ??
     []) as Participacion[];
 
-  const fotos = (fotosData ?? []) as Foto[];
+  const fotos = (fotosData ??
+    []) as Foto[];
 
   const personaIds = Array.from(
     new Set([
-      ...premios.map((premio) => premio.persona_id),
+      ...premios.map(
+        (premio) => premio.persona_id
+      ),
+
       ...participaciones.map(
-        (participacion) => participacion.persona_id
+        (participacion) =>
+          participacion.persona_id
       ),
     ])
   );
@@ -179,10 +190,11 @@ export default async function EdicionPage({
   let personas: Persona[] = [];
 
   if (personaIds.length > 0) {
-    const { data: personasData } = await supabase
-      .from("personas")
-      .select("id, nombre, imagen")
-      .in("id", personaIds);
+    const { data: personasData } =
+      await supabase
+        .from("personas")
+        .select("id, nombre, imagen")
+        .in("id", personaIds);
 
     personas = (personasData ??
       []) as Persona[];
@@ -198,11 +210,13 @@ export default async function EdicionPage({
   const premio = premios[0];
 
   const campeon = premio
-    ? personaPorId.get(premio.persona_id)
-    : participaciones.find(
-        (participacion) =>
-          participacion.posicion === 1
+    ? personaPorId.get(
+        premio.persona_id
       )
+    : participaciones.find(
+          (participacion) =>
+            participacion.posicion === 1
+        )
       ? personaPorId.get(
           participaciones.find(
             (participacion) =>
@@ -224,6 +238,10 @@ export default async function EdicionPage({
       <div className="fixed inset-0 z-0 bg-black/70" />
 
       <div className="relative z-10">
+        {/* =====================================================
+            CABECERA
+            ===================================================== */}
+
         <section className="border-b border-white/10">
           <div className="mx-auto max-w-7xl px-6 py-24 text-center">
             {evento.logo && (
@@ -243,7 +261,9 @@ export default async function EdicionPage({
             </h1>
 
             <p className="mt-5 text-lg text-zinc-400">
-              {formatearFecha(edicion.fecha)}
+              {formatearFecha(
+                edicion.fecha
+              )}
             </p>
 
             <Link
@@ -255,17 +275,24 @@ export default async function EdicionPage({
           </div>
         </section>
 
+        {/* =====================================================
+            CAMPEÓN
+            ===================================================== */}
+
         {campeon && (
           <section className="mx-auto max-w-5xl px-6 py-24">
             <div className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/90">
               <div className="grid md:grid-cols-2">
+
                 <div className="flex flex-col justify-center p-10 md:p-14">
                   <p className="text-xs font-bold uppercase tracking-[0.3em] text-violet-400">
                     Campeón
                   </p>
 
                   <h2 className="mt-4 text-5xl font-black">
-                    {nombreCorto(campeon.nombre)}
+                    {nombreCorto(
+                      campeon.nombre
+                    )}
                   </h2>
 
                   {premio?.nombre && (
@@ -276,12 +303,15 @@ export default async function EdicionPage({
 
                   {premio?.descripcion && (
                     <p className="mt-6 leading-7 text-zinc-300">
-                      {premio.descripcion}
+                      {
+                        premio.descripcion
+                      }
                     </p>
                   )}
                 </div>
 
                 <div className="relative min-h-[400px] bg-black">
+
                   {premio?.imagen ? (
                     <img
                       src={premio.imagen}
@@ -306,13 +336,19 @@ export default async function EdicionPage({
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                 </div>
+
               </div>
             </div>
           </section>
         )}
 
+        {/* =====================================================
+            GALERÍA
+            ===================================================== */}
+
         <section className="border-y border-white/10 bg-black/40">
           <div className="mx-auto max-w-7xl px-6 py-24">
+
             <div className="text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
                 Recuerdos
@@ -333,8 +369,10 @@ export default async function EdicionPage({
                   {
                     id: edicion.id,
                     eventoId: evento.id,
-                    eventoNombre: evento.nombre,
-                    eventoLogo: evento.logo,
+                    eventoNombre:
+                      evento.nombre,
+                    eventoLogo:
+                      evento.logo,
                     año: edicion.año,
                     fecha: edicion.fecha,
                     fotos,
@@ -342,11 +380,17 @@ export default async function EdicionPage({
                 ]}
               />
             </div>
+
           </div>
         </section>
 
+        {/* =====================================================
+            PODIO
+            ===================================================== */}
+
         <section className="border-y border-white/10 bg-black/40">
           <div className="mx-auto max-w-7xl px-6 py-24">
+
             <div className="text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
                 Resultados
@@ -359,6 +403,7 @@ export default async function EdicionPage({
 
             {participaciones.length > 0 ? (
               <div className="mx-auto mt-14 max-w-3xl space-y-4">
+
                 {participaciones
                   .slice(0, 3)
                   .map((participacion) => {
@@ -367,14 +412,18 @@ export default async function EdicionPage({
                         participacion.persona_id
                       );
 
-                    if (!persona) return null;
+                    if (!persona) {
+                      return null;
+                    }
 
                     const posicion =
                       participacion.posicion;
 
                     return (
                       <div
-                        key={participacion.id}
+                        key={
+                          participacion.id
+                        }
                         className="flex items-center gap-5 rounded-2xl border border-white/10 bg-zinc-950/80 p-5"
                       >
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl font-black">
@@ -409,28 +458,39 @@ export default async function EdicionPage({
                       </div>
                     );
                   })}
+
               </div>
             ) : (
               <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-dashed border-white/10 p-12 text-center">
+
                 <p className="text-4xl opacity-20">
                   🏆
                 </p>
 
                 <p className="mt-5 text-zinc-500">
-                  Todavía no hay resultados registrados
-                  para esta edición.
+                  Todavía no hay resultados
+                  registrados para esta
+                  edición.
                 </p>
+
               </div>
             )}
+
           </div>
         </section>
 
+        {/* =====================================================
+            FOOTER
+            ===================================================== */}
+
         <footer className="border-t border-white/10 bg-black/60 px-6 py-10">
           <div className="mx-auto max-w-7xl text-sm text-zinc-500">
-            THE GAME ARCHIVE · {evento.nombre}{" "}
+            THE GAME ARCHIVE ·{" "}
+            {evento.nombre}{" "}
             {edicion.año}
           </div>
         </footer>
+
       </div>
     </main>
   );
