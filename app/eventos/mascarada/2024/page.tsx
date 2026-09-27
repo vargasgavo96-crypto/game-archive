@@ -9,7 +9,7 @@ import GaleriaFotos from "@/app/components/GaleriaFotos";
 type Evento = {
   id: number;
   nombre: string;
-  descripcion: string;
+  descripcion: string | null;
   logo: string | null;
   slug: string;
   historia: string | null;
@@ -66,11 +66,19 @@ export default async function Mascarada2024Page() {
     notFound();
   }
 
-  const evento =
-    eventoData as Evento;
+  const evento = eventoData as Evento;
 
   // =====================================================
   // EDICIÓN 2024
+  //
+  // IMPORTANTE:
+  // NO incluimos "año" dentro del select.
+  //
+  // Supabase/PostgREST estaba generando:
+  // ParserError<"Unexpected input: ño, fecha, contenido">
+  //
+  // Como ya filtramos .eq("año", 2024), sabemos que
+  // esta edición corresponde al año 2024.
   // =====================================================
 
   const {
@@ -79,7 +87,7 @@ export default async function Mascarada2024Page() {
   } = await supabase
     .from("ediciones")
     .select(
-      "id, evento_id, año, fecha, contenido"
+      "id, evento_id, fecha, contenido"
     )
     .eq("evento_id", evento.id)
     .eq("año", 2024)
@@ -94,16 +102,20 @@ export default async function Mascarada2024Page() {
     notFound();
   }
 
-  const edicion =
-    edicionData as Edicion;
+  const edicion: Edicion = {
+    id: edicionData.id,
+    evento_id: edicionData.evento_id,
+    año: 2024,
+    fecha: edicionData.fecha ?? null,
+    contenido:
+      (edicionData.contenido as Record<
+        string,
+        string
+      > | null) ?? {},
+  };
 
   // =====================================================
   // PARTICIPACIONES
-  //
-  // IMPORTANTE:
-  // Separamos la consulta y hacemos el cast después
-  // para evitar el ParserError que estaba apareciendo
-  // en el build de Vercel.
   // =====================================================
 
   const {
@@ -158,7 +170,7 @@ export default async function Mascarada2024Page() {
       []) as Persona[];
 
   // =====================================================
-  // CONTENIDO DE LA EDICIÓN
+  // CONTENIDO
   // =====================================================
 
   const contenido =
@@ -368,7 +380,7 @@ export default async function Mascarada2024Page() {
           </section>
 
           {/* =================================================
-              INFORMACIÓN
+              HISTORIA DEL EVENTO
               ================================================= */}
 
           <section className="grid gap-8 md:grid-cols-2">
