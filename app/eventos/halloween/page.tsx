@@ -727,7 +727,7 @@ disfrutar esta fecha junto a nuestros amigos.`;
                     </p>
 
                     <p className="mt-1 text-lg font-bold text-white">
-                      2018–2024
+                      2017–2024
                     </p>
 
                     <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">

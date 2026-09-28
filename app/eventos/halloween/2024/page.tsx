@@ -250,6 +250,10 @@ function getImagenParticipante(
 }
 
 export default async function Halloween2024Page() {
+  // =====================================================
+  // EVENTO
+  // =====================================================
+
   const {
     data: evento,
     error: eventoError,
@@ -280,6 +284,10 @@ export default async function Halloween2024Page() {
     );
   }
 
+  // =====================================================
+  // EDICIONES
+  // =====================================================
+
   const {
     data: edicionesData,
     error: edicionesError,
@@ -299,23 +307,20 @@ export default async function Halloween2024Page() {
     (edicionesData as unknown as Edicion[] | null) ??
     [];
 
-  /*
-   * FOTOGRAFÍAS HISTÓRICAS
-   *
-   * Cada fotografía pertenece a:
-   *
-   * año + posición
-   *
-   * y no modifica la fotografía de la persona.
-   */
+  // =====================================================
+  // FOTOGRAFÍAS HISTÓRICAS
+  //
+  // IMPORTANTE:
+  // Usamos select("*") para evitar el problema del
+  // parser de Supabase/TypeScript con la columna "año".
+  // =====================================================
+
   const {
     data: historicoData,
     error: historicoError,
   } = await supabase
     .from("halloween_historico")
-    .select(
-      "id, año, posicion, nombre, persona_id, imagen"
-    )
+    .select("*")
     .order("año", {
       ascending: false,
     })
@@ -334,17 +339,10 @@ export default async function Halloween2024Page() {
     (historicoData as HalloweenHistorico[] | null) ??
     [];
 
-  /*
-   * Creamos un mapa:
-   *
-   * 2024-1
-   * 2024-2
-   * 2024-3
-   * 2023-1
-   * 2023-2
-   * 2023-3
-   * etc.
-   */
+  // =====================================================
+  // MAPA AÑO + POSICIÓN
+  // =====================================================
+
   const historicoPorAñoPosicion =
     new Map<string, HalloweenHistorico>();
 
@@ -355,16 +353,20 @@ export default async function Halloween2024Page() {
     );
   }
 
-  /*
-   * Ediciones de Supabase.
-   *
-   * Halloween 2024 utiliza específicamente
-   * la edición con id 4 para su galería.
-   */
-  const edicionPorAño = new Map<number, Edicion>();
+  // =====================================================
+  // EDICIONES POR AÑO
+  // =====================================================
+
+  const edicionPorAño =
+    new Map<number, Edicion>();
 
   for (const edicion of edicionesSupabase) {
     const año = Number(edicion.año);
+
+    /*
+     * Halloween 2024 utiliza específicamente
+     * la edición con id 4 para su galería.
+     */
 
     if (año === 2024 && edicion.id === 4) {
       edicionPorAño.set(año, edicion);
@@ -375,6 +377,10 @@ export default async function Halloween2024Page() {
       edicionPorAño.set(año, edicion);
     }
   }
+
+  // =====================================================
+  // PÁGINA
+  // =====================================================
 
   return (
     <main
@@ -387,11 +393,17 @@ export default async function Halloween2024Page() {
       <div className="fixed inset-0 z-0 bg-black/70" />
 
       <div className="relative z-10">
-        {/* HERO */}
+
+        {/* =================================================
+            HERO
+            ================================================= */}
+
         <section className="relative overflow-hidden border-b border-white/10">
+
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,92,0,0.22),_transparent_50%)]" />
 
           <div className="relative mx-auto flex min-h-[650px] max-w-7xl flex-col items-center justify-center px-6 py-28 text-center">
+
             <img
               src={
                 evento.logo ??
@@ -414,11 +426,16 @@ export default async function Halloween2024Page() {
               Halloween y por quienes han marcado la historia
               de nuestro torneo de disfraces.
             </p>
+
           </div>
         </section>
 
-        {/* HISTORIA */}
+        {/* =================================================
+            HISTORIA
+            ================================================= */}
+
         <section className="mx-auto max-w-4xl px-6 py-24 text-center">
+
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
             Nuestra historia
           </p>
@@ -432,12 +449,19 @@ export default async function Halloween2024Page() {
             Halloween, desde 2017 hasta 2024. Cada edición
             conserva sus resultados y su galería de fotografías.
           </p>
+
         </section>
 
-        {/* EDICIONES */}
+        {/* =================================================
+            EDICIONES
+            ================================================= */}
+
         <section className="border-y border-white/10 bg-black/40">
+
           <div className="mx-auto max-w-7xl px-6 py-28">
+
             <div className="text-center">
+
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
                 El archivo
               </p>
@@ -449,11 +473,14 @@ export default async function Halloween2024Page() {
               <p className="mx-auto mt-6 max-w-2xl text-zinc-500">
                 Desde los primeros años hasta la edición 2024.
               </p>
+
             </div>
 
             <div className="mt-24 space-y-32">
+
               {edicionesHistoricas.map(
                 (edicionHistorica, indice) => {
+
                   const edicionSupabase =
                     edicionPorAño.get(
                       edicionHistorica.año
@@ -471,9 +498,10 @@ export default async function Halloween2024Page() {
                         participante.posicion === 1
                     ) ?? null;
 
-                  /*
-                   * Registro histórico del ganador.
-                   */
+                  // =================================================
+                  // FOTO HISTÓRICA DEL GANADOR
+                  // =================================================
+
                   const registroGanador =
                     ganador
                       ? historicoPorAñoPosicion.get(
@@ -481,12 +509,6 @@ export default async function Halloween2024Page() {
                         )
                       : undefined;
 
-                  /*
-                   * La foto histórica tiene prioridad.
-                   *
-                   * Si todavía no hay foto histórica,
-                   * usamos la foto anterior de amigxs.
-                   */
                   const imagenGanador =
                     registroGanador?.imagen ??
                     (ganador
@@ -529,12 +551,19 @@ export default async function Halloween2024Page() {
                       key={edicionHistorica.año}
                       className="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950/95 shadow-2xl"
                     >
-                      {/* ENCABEZADO */}
+
+                      {/* =================================================
+                          ENCABEZADO
+                          ================================================= */}
+
                       <div className="relative overflow-hidden border-b border-white/10 bg-black/70 px-8 py-10 md:px-12 md:py-12">
+
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,_rgba(255,92,0,0.14),_transparent_45%)]" />
 
                         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+
                           <div>
+
                             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-400">
                               Halloween
                             </p>
@@ -542,6 +571,7 @@ export default async function Halloween2024Page() {
                             <h3 className="mt-2 text-6xl font-black md:text-8xl">
                               {edicionHistorica.año}
                             </h3>
+
                           </div>
 
                           {edicionSupabase ? (
@@ -558,12 +588,18 @@ export default async function Halloween2024Page() {
                               {textoEtiqueta}
                             </p>
                           )}
+
                         </div>
                       </div>
 
-                      {/* CAMPEÓN */}
+                      {/* =================================================
+                          CAMPEÓN
+                          ================================================= */}
+
                       <div className="grid md:grid-cols-2">
+
                         <div className="flex flex-col justify-center p-8 md:p-14">
+
                           {edicionSupabase ? (
                             <EditarTextoEdicion
                               valor={textoCampeon}
@@ -610,7 +646,10 @@ export default async function Halloween2024Page() {
                                 </span>
                               </div>
 
-                              {/* FOTO DEL GANADOR */}
+                              {/* =================================================
+                                  FOTO DEL GANADOR
+                                  ================================================= */}
+
                               <EditarFotoHalloweenHistorico
                                 registroId={
                                   registroGanador?.id ??
@@ -636,9 +675,13 @@ export default async function Halloween2024Page() {
                               Ganador no registrado.
                             </p>
                           )}
+
                         </div>
 
+                        {/* FOTO GANADOR */}
+
                         <div className="relative min-h-[420px] overflow-hidden bg-black">
+
                           {imagenGanador ? (
                             <img
                               src={imagenGanador}
@@ -649,7 +692,9 @@ export default async function Halloween2024Page() {
                             />
                           ) : (
                             <div className="flex h-full min-h-[420px] items-center justify-center">
+
                               <div className="text-center">
+
                                 <p className="text-8xl">
                                   🎃
                                 </p>
@@ -657,18 +702,27 @@ export default async function Halloween2024Page() {
                                 <p className="mt-5 text-xs font-bold uppercase tracking-[0.3em] text-zinc-700">
                                   Sin fotografía
                                 </p>
+
                               </div>
+
                             </div>
                           )}
 
                           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-950 via-transparent to-transparent" />
+
                         </div>
+
                       </div>
 
-                      {/* PODIO */}
+                      {/* =================================================
+                          PODIO
+                          ================================================= */}
+
                       {mostrarPodio && (
                         <div className="border-t border-white/10 bg-black/20 px-8 py-12 md:px-12 md:py-14">
+
                           <div className="text-center">
+
                             {edicionSupabase ? (
                               <EditarTextoEdicion
                                 valor={
@@ -700,9 +754,11 @@ export default async function Halloween2024Page() {
                                 {textoPodio}
                               </h4>
                             )}
+
                           </div>
 
                           <div className="mt-12 grid gap-6 md:grid-cols-3">
+
                             {participantes
                               .filter(
                                 (participante) =>
@@ -716,20 +772,20 @@ export default async function Halloween2024Page() {
                               )
                               .map(
                                 (participante) => {
-                                  /*
-                                   * Registro específico:
-                                   *
-                                   * año + posición
-                                   */
+
+                                  // =================================================
+                                  // REGISTRO HISTÓRICO
+                                  // =================================================
+
                                   const registroHistorico =
                                     historicoPorAñoPosicion.get(
                                       `${edicionHistorica.año}-${participante.posicion}`
                                     );
 
-                                  /*
-                                   * Foto histórica primero.
-                                   * Fallback a /amigxs.
-                                   */
+                                  // =================================================
+                                  // FOTO
+                                  // =================================================
+
                                   const imagen =
                                     registroHistorico?.imagen ??
                                     getImagenParticipante(
@@ -750,9 +806,11 @@ export default async function Halloween2024Page() {
                                       key={`podio-${edicionHistorica.año}-${participante.nombre}`}
                                       className={`relative ${altura} overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90`}
                                     >
+
                                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,120,0,0.12),_transparent_55%)]" />
 
                                       <div className="relative flex h-full flex-col items-center justify-center p-8 text-center">
+
                                         <span className="text-6xl">
                                           {posicionEmoji(
                                             participante.posicion
@@ -773,6 +831,7 @@ export default async function Halloween2024Page() {
 
                                         {imagen && (
                                           <div className="mt-8 h-24 w-24 overflow-hidden rounded-full border border-white/10 bg-black">
+
                                             <img
                                               src={imagen}
                                               alt={nombreHistorico(
@@ -780,10 +839,14 @@ export default async function Halloween2024Page() {
                                               )}
                                               className="h-full w-full object-cover"
                                             />
+
                                           </div>
                                         )}
 
-                                        {/* FOTO DEL PODIO */}
+                                        {/* =================================================
+                                            EDITAR FOTO DEL PODIO
+                                            ================================================= */}
+
                                         <EditarFotoHalloweenHistorico
                                           registroId={
                                             registroHistorico?.id ??
@@ -803,29 +866,40 @@ export default async function Halloween2024Page() {
                                             participante.nombre
                                           }
                                         />
+
                                       </div>
                                     </div>
                                   );
                                 }
                               )}
+
                           </div>
                         </div>
                       )}
 
-                      {/* GALERÍA */}
+                      {/* =================================================
+                          GALERÍA
+                          ================================================= */}
+
                       {edicionSupabase && (
                         <div className="border-t border-white/10 px-8 py-12 md:px-12 md:py-14">
+
                           <GaleriaFotos
                             edicionId={
                               edicionSupabase.id
                             }
                           />
+
                         </div>
                       )}
 
-                      {/* SEPARADOR */}
+                      {/* =================================================
+                          SEPARADOR
+                          ================================================= */}
+
                       {!esUltima && (
                         <div className="flex items-center gap-6 border-t border-white/5 bg-black/30 px-8 py-8 md:px-12">
+
                           <div className="h-px flex-1 bg-white/10" />
 
                           {edicionSupabase ? (
@@ -848,26 +922,39 @@ export default async function Halloween2024Page() {
                           )}
 
                           <div className="h-px flex-1 bg-white/10" />
+
                         </div>
                       )}
+
                     </article>
                   );
                 }
               )}
+
             </div>
           </div>
         </section>
 
-        {/* FOOTER */}
+        {/* =================================================
+            FOOTER
+            ================================================= */}
+
         <footer className="border-t border-white/10 bg-black/50 px-6 py-10">
+
           <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-zinc-500 md:flex-row md:justify-between">
-            <p>THE GAME ARCHIVE</p>
+
+            <p>
+              THE GAME ARCHIVE
+            </p>
 
             <p>
               Halloween · Archivo histórico · 2017–2024
             </p>
+
           </div>
+
         </footer>
+
       </div>
     </main>
   );
