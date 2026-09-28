@@ -15,7 +15,8 @@ type Edicion = {
   id: number;
   evento_id: number;
   año: string;
-  fecha: string;
+  fecha: string | null;
+  contenido: Record<string, string> | null;
 };
 
 type Persona = {
@@ -52,6 +53,10 @@ function nombreCorto(nombre: string) {
 }
 
 export default async function UglySweatersPage() {
+  // =====================================================
+  // EVENTO
+  // =====================================================
+
   const {
     data: evento,
     error: eventoError,
@@ -84,136 +89,150 @@ export default async function UglySweatersPage() {
     );
   }
 
+  // =====================================================
+  // EDICIÓN ACTUAL 2026
+  // =====================================================
+
   const {
-    data: edicionesData,
-    error: edicionesError,
+    data: edicion2026Data,
+    error: edicion2026Error,
   } = await supabase
     .from("ediciones")
-    .select("*")
-    .eq("evento_id", evento.id)
-    .order("fecha", {
-      ascending: false,
-    });
-
-  if (edicionesError) {
-    console.error(
-      "Error cargando ediciones:",
-      edicionesError
-    );
-  }
-
-  const ediciones: Edicion[] = edicionesData ?? [];
-
-  const edicionIds = ediciones.map(
-    (edicion) => edicion.id
-  );
-
-  const {
-    data: premiosData,
-    error: premiosError,
-  } = edicionIds.length
-    ? await supabase
-        .from("premios")
-        .select(
-          "id, persona_id, edicion_id, nombre, descripcion, imagen"
-        )
-        .in("edicion_id", edicionIds)
-    : {
-        data: [],
-        error: null,
-      };
-
-  if (premiosError) {
-    console.error(
-      "Error cargando premios:",
-      premiosError
-    );
-  }
-
-  const premios: Premio[] = premiosData ?? [];
-
-  const {
-    data: participacionesData,
-    error: participacionesError,
-  } = edicionIds.length
-    ? await supabase
-        .from("participaciones")
-        .select(
-          "id, persona_id, edicion_id, posicion, puntos_finales"
-        )
-        .in("edicion_id", edicionIds)
-        .eq("posicion", 1)
-    : {
-        data: [],
-        error: null,
-      };
-
-  if (participacionesError) {
-    console.error(
-      "Error cargando participaciones:",
-      participacionesError
-    );
-  }
-
-  const participacionesGanadoras: Participacion[] =
-    participacionesData ?? [];
-
-  const personaIds = [
-    ...new Set([
-      ...premios.map(
-        (premio) => premio.persona_id
-      ),
-      ...participacionesGanadoras.map(
-        (participacion) =>
-          participacion.persona_id
-      ),
-    ]),
-  ];
-
-  const {
-    data: personasData,
-    error: personasError,
-  } = personaIds.length
-    ? await supabase
-        .from("personas")
-        .select("id, nombre, imagen")
-        .in("id", personaIds)
-    : {
-        data: [],
-        error: null,
-      };
-
-  if (personasError) {
-    console.error(
-      "Error cargando personas:",
-      personasError
-    );
-  }
-
-  const personas: Persona[] = personasData ?? [];
-
-  const personaPorId = new Map(
-    personas.map((persona) => [
-      persona.id,
-      persona,
-    ])
-  );
-
-  const premioPorEdicion = new Map(
-    premios.map((premio) => [
-      premio.edicion_id,
-      premio,
-    ])
-  );
-
-  const participacionPorEdicion = new Map(
-    participacionesGanadoras.map(
-      (participacion) => [
-        participacion.edicion_id,
-        participacion,
-      ]
+    .select(
+      "id, evento_id, año, fecha, contenido"
     )
-  );
+    .eq("evento_id", evento.id)
+    .eq("año", 2026)
+    .maybeSingle();
+
+  if (edicion2026Error) {
+    console.error(
+      "Error cargando edición 2026:",
+      edicion2026Error
+    );
+  }
+
+  const edicion2026 =
+    edicion2026Data as Edicion | null;
+
+  // =====================================================
+  // PREMIO 2026
+  // =====================================================
+
+  let premio2026: Premio | null = null;
+
+  if (edicion2026) {
+    const {
+      data: premioData,
+      error: premioError,
+    } = await supabase
+      .from("premios")
+      .select(
+        "id, persona_id, edicion_id, nombre, descripcion, imagen"
+      )
+      .eq(
+        "edicion_id",
+        edicion2026.id
+      )
+      .maybeSingle();
+
+    if (premioError) {
+      console.error(
+        "Error cargando premio 2026:",
+        premioError
+      );
+    }
+
+    premio2026 =
+      (premioData as Premio | null) ??
+      null;
+  }
+
+  // =====================================================
+  // GANADOR 2026
+  // =====================================================
+
+  let participacion2026:
+    | Participacion
+    | null = null;
+
+  if (edicion2026) {
+    const {
+      data: participacionData,
+      error: participacionError,
+    } = await supabase
+      .from("participaciones")
+      .select(
+        "id, persona_id, edicion_id, posicion, puntos_finales"
+      )
+      .eq(
+        "edicion_id",
+        edicion2026.id
+      )
+      .eq("posicion", 1)
+      .maybeSingle();
+
+    if (participacionError) {
+      console.error(
+        "Error cargando ganador 2026:",
+        participacionError
+      );
+    }
+
+    participacion2026 =
+      (participacionData as Participacion | null) ??
+      null;
+  }
+
+  // =====================================================
+  // PERSONA GANADORA 2026
+  // =====================================================
+
+  const ganadorId =
+    premio2026?.persona_id ??
+    participacion2026?.persona_id ??
+    null;
+
+  let ganador2026:
+    | Persona
+    | null = null;
+
+  if (ganadorId) {
+    const {
+      data: personaData,
+      error: personaError,
+    } = await supabase
+      .from("personas")
+      .select(
+        "id, nombre, imagen"
+      )
+      .eq("id", ganadorId)
+      .maybeSingle();
+
+    if (personaError) {
+      console.error(
+        "Error cargando persona ganadora:",
+        personaError
+      );
+    }
+
+    ganador2026 =
+      (personaData as Persona | null) ??
+      null;
+  }
+
+  // =====================================================
+  // IMAGEN DE 2026
+  // =====================================================
+
+  const imagen2026 =
+    premio2026?.imagen ??
+    ganador2026?.imagen ??
+    null;
+
+  // =====================================================
+  // HISTORIA
+  // =====================================================
 
   const historia =
     evento.historia ??
@@ -223,249 +242,874 @@ export default async function UglySweatersPage() {
     evento.como_nacio ??
     "Una instancia para compartir, jugar y crear recuerdos.";
 
+  // =====================================================
+  // RENDER
+  // =====================================================
+
   return (
     <main className="relative min-h-screen text-white">
 
-      {/* FONDO */}
+      {/* =================================================
+          FONDO GENERAL
+          ================================================= */}
+
       <div className="fixed inset-0 z-0 overflow-hidden">
+
         <img
           src="/eventos/ugly-sweaters.png"
           alt=""
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          className="
+            absolute
+            inset-0
+            h-full
+            w-full
+            object-cover
+            object-center
+          "
         />
 
-        <div className="absolute inset-0 bg-black/55" />
+        <div
+          className="
+            absolute
+            inset-0
+            bg-black/65
+          "
+        />
+
+        <div
+          className="
+            absolute
+            inset-0
+            bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12),_transparent_60%)]
+          "
+        />
+
       </div>
 
       <div className="relative z-10">
 
-        {/* HERO */}
-        <section className="relative overflow-hidden border-b border-white/10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.25),_transparent_50%)]" />
+        {/* =================================================
+            HERO
+            ================================================= */}
 
-          <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-24 text-center">
+        <section
+          className="
+            border-b
+            border-white/10
+          "
+        >
+
+          <div
+            className="
+              mx-auto
+              flex
+              min-h-[680px]
+              max-w-6xl
+              flex-col
+              items-center
+              justify-center
+              px-6
+              py-28
+              text-center
+            "
+          >
+
+            {/* LOGO */}
 
             {evento.logo && (
               <img
                 src={evento.logo}
                 alt={evento.nombre}
-                className="max-h-72 max-w-md object-contain"
+                className="
+                  max-h-64
+                  max-w-md
+                  object-contain
+                  drop-shadow-[0_10px_45px_rgba(0,0,0,0.8)]
+                "
               />
             )}
 
-            <p className="mt-12 text-sm font-semibold uppercase tracking-[0.4em] text-violet-400">
-              Nuestro evento
+            {/* IDENTIDAD */}
+
+            <p
+              className="
+                mt-12
+                text-xs
+                font-bold
+                uppercase
+                tracking-[0.5em]
+                text-violet-400
+              "
+            >
+              THE GAME ARCHIVE
             </p>
 
-            <div className="mt-4 w-full">
+            <div className="mt-5">
+
               <EditarTexto
                 valor={evento.nombre}
                 campo="nombre"
                 eventoId={evento.id}
-                claseTexto="text-5xl font-black md:text-7xl"
+                claseTexto="
+                  text-5xl
+                  font-black
+                  tracking-tight
+                  md:text-7xl
+                "
               />
+
             </div>
 
-            <div className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
+            {/* DESCRIPCIÓN */}
+
+            <div
+              className="
+                mx-auto
+                mt-7
+                max-w-2xl
+                text-base
+                leading-8
+                text-zinc-300
+                md:text-lg
+              "
+            >
+
               <EditarTexto
-                valor={evento.descripcion ?? ""}
+                valor={
+                  evento.descripcion ?? ""
+                }
                 campo="descripcion"
                 eventoId={evento.id}
                 multilinea
               />
+
             </div>
 
           </div>
+
         </section>
 
-        {/* HISTORIA */}
-        <section className="mx-auto max-w-5xl px-6 py-24 text-center">
+        {/* =================================================
+            HISTORIA
+            ================================================= */}
 
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
+        <section
+          className="
+            mx-auto
+            max-w-4xl
+            px-6
+            py-28
+            text-center
+          "
+        >
+
+          <p
+            className="
+              text-xs
+              font-bold
+              uppercase
+              tracking-[0.4em]
+              text-violet-400
+            "
+          >
             La historia
           </p>
 
-          <h2 className="mt-4 text-4xl font-bold md:text-5xl">
+          <h2
+            className="
+              mt-5
+              text-4xl
+              font-black
+              md:text-5xl
+            "
+          >
             ¿Qué es Ugly Sweaters Party?
           </h2>
 
-          <div className="mt-10 text-lg leading-8 text-zinc-300">
+          <div
+            className="
+              mt-8
+              text-lg
+              leading-8
+              text-zinc-300
+            "
+          >
+
             <EditarTexto
               valor={historia}
               campo="historia"
               eventoId={evento.id}
               multilinea
             />
-          </div>
 
-          <div className="mt-8 text-lg leading-8 text-zinc-300">
-            <EditarTexto
-              valor={comoNacio}
-              campo="como_nacio"
-              eventoId={evento.id}
-              multilinea
-            />
           </div>
 
         </section>
 
-        {/* EDICIONES */}
-        <section className="border-y border-white/10 bg-black/40">
+        {/* =================================================
+            ORIGEN
+            ================================================= */}
 
-          <div className="mx-auto max-w-7xl px-6 py-24">
+        <section
+          className="
+            border-y
+            border-white/10
+            bg-black/30
+          "
+        >
+
+          <div
+            className="
+              mx-auto
+              max-w-4xl
+              px-6
+              py-28
+              text-center
+            "
+          >
+
+            <p
+              className="
+                text-xs
+                font-bold
+                uppercase
+                tracking-[0.4em]
+                text-violet-400
+              "
+            >
+              El origen
+            </p>
+
+            <h2
+              className="
+                mt-5
+                text-4xl
+                font-black
+                md:text-5xl
+              "
+            >
+              ¿Cómo nació?
+            </h2>
+
+            <div
+              className="
+                mt-8
+                text-lg
+                leading-8
+                text-zinc-300
+              "
+            >
+
+              <EditarTexto
+                valor={comoNacio}
+                campo="como_nacio"
+                eventoId={evento.id}
+                multilinea
+              />
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* =================================================
+            EDICIONES
+            ================================================= */}
+
+        <section
+          className="
+            border-y
+            border-white/10
+            bg-black/35
+          "
+        >
+
+          <div
+            className="
+              mx-auto
+              max-w-6xl
+              px-6
+              py-28
+            "
+          >
+
+            {/* =================================================
+                ENCABEZADO
+                ================================================= */}
 
             <div className="text-center">
 
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
-                Archivo histórico
+              <p
+                className="
+                  text-xs
+                  font-bold
+                  uppercase
+                  tracking-[0.45em]
+                  text-violet-400
+                "
+              >
+                Ugly Sweaters Party
               </p>
 
-              <h2 className="mt-4 text-5xl font-black">
-                EDICIONES
+              <h2
+                className="
+                  mt-4
+                  text-4xl
+                  font-black
+                  uppercase
+                  md:text-5xl
+                "
+              >
+                Ediciones
               </h2>
 
-              <p className="mx-auto mt-5 max-w-xl text-zinc-300">
-                Las ediciones de Ugly Sweaters Party aparecerán aquí.
+              <p
+                className="
+                  mx-auto
+                  mt-4
+                  max-w-xl
+                  text-sm
+                  leading-7
+                  text-zinc-400
+                "
+              >
+                Conoce la edición actual y revisa
+                nuestro archivo histórico.
               </p>
 
             </div>
 
-            {ediciones.length === 0 ? (
-              <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-white/10 bg-zinc-900/90 p-12 text-center">
+            {/* =================================================
+                DOS TARJETAS
+                ================================================= */}
 
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
-                  Próximamente
-                </p>
+            <div
+              className="
+                mx-auto
+                mt-16
+                grid
+                max-w-5xl
+                gap-6
+                md:grid-cols-2
+              "
+            >
 
-                <h3 className="mt-5 text-4xl font-black md:text-5xl">
-                  Ugly Sweaters Party
-                </h3>
+              {/* =================================================
+                  TARJETA 2026
+                  ================================================= */}
 
-                <p className="mt-5 text-lg text-zinc-300">
-                  Las ediciones de Ugly Sweaters Party aparecerán aquí.
-                </p>
+              <a
+                href="/eventos/ugly-sweaters/2026"
+                className="
+                  group
+                  relative
+                  overflow-hidden
+                  rounded-[2rem]
+                  border
+                  border-white/10
+                  bg-zinc-950/90
+                  shadow-2xl
+                  transition
+                  duration-500
+                  hover:-translate-y-1
+                  hover:border-violet-400/40
+                "
+              >
 
-              </div>
-            ) : (
-              <div className="mt-14 grid gap-8 md:grid-cols-2">
+                {/* IMAGEN */}
 
-                {ediciones.map((edicion) => {
+                <div
+                  className="
+                    relative
+                    h-[390px]
+                    overflow-hidden
+                    bg-zinc-950
+                  "
+                >
 
-                  const premio =
-                    premioPorEdicion.get(edicion.id);
+                  {imagen2026 ? (
 
-                  const participacion =
-                    participacionPorEdicion.get(edicion.id);
+                    <>
+                      {/* FONDO DIFUMINADO */}
 
-                  const ganadorId =
-                    premio?.persona_id ??
-                    participacion?.persona_id;
+                      <div
+                        className="
+                          absolute
+                          inset-0
+                          scale-110
+                          bg-cover
+                          bg-center
+                          opacity-35
+                          blur-2xl
+                          transition
+                          duration-700
+                          group-hover:scale-125
+                        "
+                        style={{
+                          backgroundImage:
+                            `url('${imagen2026}')`,
+                        }}
+                      />
 
-                  const ganador = ganadorId
-                    ? personaPorId.get(ganadorId)
-                    : undefined;
+                      {/* FOTO */}
 
-                  const imagenGanador =
-                    premio?.imagen ??
-                    ganador?.imagen;
+                      <img
+                        src={imagen2026}
+                        alt="Ugly Sweaters Party 2026"
+                        className="
+                          relative
+                          z-10
+                          h-full
+                          w-full
+                          object-cover
+                          transition
+                          duration-700
+                          group-hover:scale-105
+                        "
+                      />
+                    </>
 
-                  return (
-                    <a
-                      key={edicion.id}
-                      href={`/eventos/ugly-sweaters/${edicion.año}`}
-                      className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
+                  ) : (
+
+                    <div
+                      className="
+                        flex
+                        h-full
+                        items-center
+                        justify-center
+                        bg-zinc-950
+                      "
                     >
 
-                      <div className="relative h-[520px] overflow-hidden bg-zinc-900">
+                      {evento.logo && (
+                        <img
+                          src={evento.logo}
+                          alt="Ugly Sweaters Party"
+                          className="
+                            max-h-48
+                            max-w-[70%]
+                            object-contain
+                            opacity-80
+                          "
+                        />
+                      )}
 
-                        {imagenGanador && (
-                          <div
-                            className="absolute inset-0 scale-110 bg-cover bg-center opacity-30 blur-2xl transition duration-700 group-hover:scale-125"
-                            style={{
-                              backgroundImage: `url('${imagenGanador}')`,
-                            }}
-                          />
-                        )}
+                    </div>
 
-                        <div className="absolute inset-0 bg-black/40" />
+                  )}
 
-                        {imagenGanador ? (
-                          <img
-                            src={imagenGanador}
-                            alt={
-                              ganador
-                                ? nombreCorto(ganador.nombre)
-                                : "Ganador de Ugly Sweaters Party"
-                            }
-                            className="relative z-10 h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
-                          />
-                        ) : (
-                          <img
-                            src={
-                              evento.logo ??
-                              "/logos/ugly-sweaters.png"
-                            }
-                            alt="Ugly Sweaters Party"
-                            className="relative z-10 h-full w-full object-contain p-20 opacity-60"
-                          />
-                        )}
+                  {/* DEGRADADO */}
 
-                        <div className="absolute inset-0 z-20 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                  <div
+                    className="
+                      absolute
+                      inset-0
+                      z-20
+                      bg-gradient-to-t
+                      from-black
+                      via-black/20
+                      to-transparent
+                    "
+                  />
 
-                        <div className="absolute bottom-8 left-8 z-30">
+                  {/* INFORMACIÓN SOBRE FOTO */}
 
-                          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
-                            Edición
-                          </p>
+                  <div
+                    className="
+                      absolute
+                      bottom-7
+                      left-7
+                      z-30
+                    "
+                  >
 
-                          <h3 className="mt-2 text-7xl font-black tracking-tight">
-                            {edicion.año}
-                          </h3>
+                    <p
+                      className="
+                        text-xs
+                        font-bold
+                        uppercase
+                        tracking-[0.35em]
+                        text-violet-300
+                      "
+                    >
+                      Edición actual
+                    </p>
 
-                        </div>
+                    <h3
+                      className="
+                        mt-1
+                        text-6xl
+                        font-black
+                      "
+                    >
+                      2026
+                    </h3>
 
-                      </div>
+                  </div>
 
-                      <div className="border-t border-white/10 bg-zinc-900/95 p-8">
+                </div>
 
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                          {premio?.nombre ??
-                            "Ganador de la edición"}
-                        </p>
+                {/* INFORMACIÓN */}
 
-                        <p className="mt-2 text-2xl font-bold">
-                          {ganador
-                            ? nombreCorto(ganador.nombre)
-                            : "Por definir"}
-                        </p>
+                <div
+                  className="
+                    flex
+                    items-center
+                    justify-between
+                    gap-5
+                    border-t
+                    border-white/10
+                    px-7
+                    py-6
+                  "
+                >
 
-                        <p className="mt-6 text-sm font-semibold text-zinc-500 transition group-hover:text-violet-400">
-                          VER EDICIÓN →
-                        </p>
+                  <div>
 
-                      </div>
+                    <p
+                      className="
+                        text-xs
+                        font-bold
+                        uppercase
+                        tracking-[0.2em]
+                        text-zinc-500
+                      "
+                    >
+                      Ugly Sweaters Party
+                    </p>
 
-                    </a>
-                  );
-                })}
+                    <p
+                      className="
+                        mt-1
+                        text-xl
+                        font-bold
+                        text-white
+                      "
+                    >
+                      Edición 2026
+                    </p>
 
-              </div>
-            )}
+                  </div>
+
+                  <span
+                    className="
+                      flex
+                      h-11
+                      w-11
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      border
+                      border-white/10
+                      text-lg
+                      text-zinc-500
+                      transition
+                      duration-300
+                      group-hover:border-violet-400/40
+                      group-hover:bg-violet-500/10
+                      group-hover:text-violet-400
+                    "
+                  >
+                    →
+                  </span>
+
+                </div>
+
+              </a>
+
+              {/* =================================================
+                  TARJETA HISTÓRICO
+                  ================================================= */}
+
+              <a
+                href="/eventos/ugly-sweaters/historico"
+                className="
+                  group
+                  relative
+                  overflow-hidden
+                  rounded-[2rem]
+                  border
+                  border-white/10
+                  bg-zinc-950/90
+                  shadow-2xl
+                  transition
+                  duration-500
+                  hover:-translate-y-1
+                  hover:border-violet-400/40
+                "
+              >
+
+                {/* =================================================
+                    IMAGEN / LOGO
+                    ================================================= */}
+
+                <div
+                  className="
+                    relative
+                    h-[390px]
+                    overflow-hidden
+                    bg-zinc-950
+                  "
+                >
+
+                  {/* FOTO DE FONDO */}
+
+                  <img
+                    src="/eventos/ugly-sweaters.png"
+                    alt=""
+                    className="
+                      absolute
+                      inset-0
+                      h-full
+                      w-full
+                      object-cover
+                      opacity-20
+                      transition
+                      duration-700
+                      group-hover:scale-105
+                      group-hover:opacity-30
+                    "
+                  />
+
+                  {/* OSCURECER */}
+
+                  <div
+                    className="
+                      absolute
+                      inset-0
+                      bg-black/75
+                    "
+                  />
+
+                  {/* DEGRADADO */}
+
+                  <div
+                    className="
+                      absolute
+                      inset-0
+                      bg-gradient-to-b
+                      from-black/40
+                      via-black/50
+                      to-black
+                    "
+                  />
+
+                  {/* CONTENIDO */}
+
+                  <div
+                    className="
+                      relative
+                      z-10
+                      flex
+                      h-full
+                      flex-col
+                      items-center
+                      justify-center
+                      px-8
+                      text-center
+                    "
+                  >
+
+                    {/* LOGO */}
+
+                    {evento.logo && (
+                      <img
+                        src={evento.logo}
+                        alt="Ugly Sweaters Party"
+                        className="
+                          max-h-36
+                          max-w-[75%]
+                          object-contain
+                          drop-shadow-[0_8px_30px_rgba(0,0,0,0.8)]
+                          transition
+                          duration-500
+                          group-hover:scale-105
+                        "
+                      />
+                    )}
+
+                    {/* LÍNEA */}
+
+                    <div
+                      className="
+                        mt-8
+                        h-px
+                        w-16
+                        bg-violet-400/60
+                      "
+                    />
+
+                    {/* TÍTULO */}
+
+                    <h3
+                      className="
+                        mt-7
+                        text-4xl
+                        font-black
+                        uppercase
+                        tracking-[0.12em]
+                        text-white
+                        md:text-5xl
+                      "
+                    >
+                      Histórico
+                    </h3>
+
+                    {/* DESCRIPCIÓN */}
+
+                    <p
+                      className="
+                        mt-4
+                        max-w-sm
+                        text-sm
+                        leading-6
+                        text-zinc-300
+                      "
+                    >
+                      Revive las ediciones anteriores
+                      de Ugly Sweaters Party.
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* =================================================
+                    INFORMACIÓN
+                    ================================================= */}
+
+                <div
+                  className="
+                    border-t
+                    border-white/10
+                    bg-zinc-900/95
+                    px-7
+                    py-7
+                  "
+                >
+
+                  <div
+                    className="
+                      flex
+                      items-center
+                      justify-between
+                      gap-6
+                    "
+                  >
+
+                    <div>
+
+                      <p
+                        className="
+                          text-xs
+                          font-bold
+                          uppercase
+                          tracking-[0.25em]
+                          text-zinc-500
+                        "
+                      >
+                        Archivo histórico
+                      </p>
+
+                      <p
+                        className="
+                          mt-2
+                          text-2xl
+                          font-black
+                          text-white
+                        "
+                      >
+                        2022 — 2025
+                      </p>
+
+                    </div>
+
+                    <span
+                      className="
+                        flex
+                        h-11
+                        w-11
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        border
+                        border-white/10
+                        text-lg
+                        text-zinc-500
+                        transition
+                        duration-300
+                        group-hover:border-violet-400/40
+                        group-hover:bg-violet-500/10
+                        group-hover:text-violet-400
+                      "
+                    >
+                      →
+                    </span>
+
+                  </div>
+
+                  <p
+                    className="
+                      mt-6
+                      text-xs
+                      font-bold
+                      uppercase
+                      tracking-[0.2em]
+                      text-zinc-500
+                      transition
+                      group-hover:text-violet-400
+                    "
+                  >
+                    Ver histórico
+                  </p>
+
+                </div>
+
+              </a>
+
+            </div>
 
           </div>
+
         </section>
 
-        {/* FOOTER */}
-        <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
+        {/* =================================================
+            FOOTER
+            ================================================= */}
 
-          <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
+        <footer
+          className="
+            border-t
+            border-white/10
+            bg-black/45
+            px-6
+            py-10
+          "
+        >
+
+          <div
+            className="
+              mx-auto
+              flex
+              max-w-6xl
+              flex-col
+              justify-between
+              gap-3
+              text-sm
+              text-zinc-500
+              md:flex-row
+            "
+          >
 
             <p>
               THE GAME ARCHIVE
             </p>
 
             <p>
-              Juegos · Eventos · Campeones
+              Ugly Sweaters Party
             </p>
 
           </div>
@@ -473,6 +1117,7 @@ export default async function UglySweatersPage() {
         </footer>
 
       </div>
+
     </main>
   );
 }

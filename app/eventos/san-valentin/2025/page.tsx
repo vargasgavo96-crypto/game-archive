@@ -1,0 +1,720 @@
+import { notFound } from "next/navigation";
+
+import { supabase } from "@/lib/supabase";
+
+import EditarTextoEdicion from "@/app/components/EditarTextoEdicion";
+import ParticipantesMascarada from "@/app/components/ParticipantesMascarada";
+import GaleriaFotos from "@/app/components/GaleriaFotos";
+
+type Evento = {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  logo: string | null;
+  slug: string;
+  historia: string | null;
+  como_nacio: string | null;
+  fondo?: string | null;
+};
+
+type Edicion = {
+  id: number;
+  evento_id: number;
+  año: number;
+  fecha: string | null;
+  contenido: Record<string, string> | null;
+};
+
+type Persona = {
+  id: number;
+  nombre: string;
+  imagen: string | null;
+};
+
+type Participacion = {
+  id: number;
+  persona_id: number;
+  edicion_id: number;
+  posicion: number | null;
+  puntos_finales: number | null;
+  personaje: string | null;
+  imagen: string | null;
+};
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function SanValentin2025Page() {
+  // =====================================================
+  // EVENTO
+  // =====================================================
+
+  const {
+    data: eventoData,
+    error: eventoError,
+  } = await supabase
+    .from("eventos")
+    .select(
+      "id, nombre, descripcion, logo, slug, historia, como_nacio, fondo"
+    )
+    .eq("slug", "san-valentin")
+    .single();
+
+  if (eventoError || !eventoData) {
+    console.error(
+      "Error cargando San Valentín:",
+      eventoError
+    );
+
+    notFound();
+  }
+
+  const evento = eventoData as Evento;
+
+  // =====================================================
+  // EDICIÓN 2025
+  // =====================================================
+
+  const {
+    data: edicionData,
+    error: edicionError,
+  } = await supabase
+    .from("ediciones")
+    .select("id, evento_id, fecha, contenido")
+    .eq("evento_id", evento.id)
+    .eq("año", 2025)
+    .single();
+
+  if (edicionError || !edicionData) {
+    console.error(
+      "Error cargando edición 2025:",
+      edicionError
+    );
+
+    notFound();
+  }
+
+  const edicion: Edicion = {
+    id: edicionData.id,
+    evento_id: edicionData.evento_id,
+    año: 2025,
+    fecha: edicionData.fecha ?? null,
+    contenido:
+      (edicionData.contenido as Record<
+        string,
+        string
+      > | null) ?? {},
+  };
+
+  // =====================================================
+  // PARTICIPACIONES
+  // =====================================================
+
+  const {
+    data: participacionesData,
+    error: participacionesError,
+  } = await supabase
+    .from("participaciones")
+    .select(
+      "id, persona_id, edicion_id, posicion, puntos_finales, personaje, imagen"
+    )
+    .eq("edicion_id", edicion.id)
+    .order("id", {
+      ascending: true,
+    });
+
+  if (participacionesError) {
+    console.error(
+      "Error cargando participaciones:",
+      participacionesError
+    );
+  }
+
+  const participaciones: Participacion[] =
+    (participacionesData ?? []) as Participacion[];
+
+  // =====================================================
+  // PERSONAS
+  // =====================================================
+
+  const {
+    data: personasData,
+    error: personasError,
+  } = await supabase
+    .from("personas")
+    .select("id, nombre, imagen")
+    .order("nombre", {
+      ascending: true,
+    });
+
+  if (personasError) {
+    console.error(
+      "Error cargando personas:",
+      personasError
+    );
+  }
+
+  const personas: Persona[] =
+    (personasData ?? []) as Persona[];
+
+  // =====================================================
+  // CONTENIDO EDITABLE
+  // =====================================================
+
+  const contenido =
+    edicion.contenido ?? {};
+
+  const resumen =
+    contenido.resumen ??
+    "Escribe aquí el resumen de la edición.";
+
+  const tematica =
+    contenido.tematica ??
+    "Escribe aquí la temática de la edición.";
+
+  // =====================================================
+  // RENDER
+  // =====================================================
+
+  return (
+    <main className="relative min-h-screen overflow-hidden text-white">
+
+      {/* ==================================================
+          FONDO FIJO
+          ================================================== */}
+
+      <div className="fixed inset-0 -z-20 overflow-hidden bg-black">
+        <img
+          src="/eventos/san-valentin.png"
+          alt=""
+          className="
+            absolute
+            left-1/2
+            top-0
+            h-full
+            w-auto
+            max-w-none
+            -translate-x-1/2
+          "
+        />
+      </div>
+
+      {/* OSCURECER FONDO */}
+
+      <div className="fixed inset-0 -z-10 bg-black/65" />
+
+      {/* ==================================================
+          CONTENIDO
+          ================================================== */}
+
+      <div className="relative z-10">
+
+        {/* ==================================================
+            HERO
+            ================================================== */}
+
+        <section className="relative overflow-hidden border-b border-white/10">
+
+          <div
+            className="
+              absolute
+              inset-0
+              bg-[radial-gradient(circle_at_center,_rgba(244,63,94,0.25),_transparent_55%)]
+            "
+          />
+
+          <div
+            className="
+              relative
+              mx-auto
+              flex
+              max-w-7xl
+              flex-col
+              items-center
+              px-6
+              py-24
+              text-center
+              md:py-32
+            "
+          >
+
+            {/* LOGO */}
+
+            <div className="mb-10 flex w-full justify-center">
+
+              <img
+                src={
+                  evento.logo ||
+                  "/logos/san-valentin.png"
+                }
+                alt={evento.nombre}
+                className="
+                  max-h-56
+                  w-auto
+                  max-w-[85%]
+                  object-contain
+                  drop-shadow-[0_10px_35px_rgba(0,0,0,0.85)]
+                "
+              />
+
+            </div>
+
+            {/* NOMBRE */}
+
+            <p
+              className="
+                text-sm
+                font-bold
+                uppercase
+                tracking-[0.45em]
+                text-rose-400
+              "
+            >
+              San Valentín
+            </p>
+
+            {/* AÑO */}
+
+            <h1
+              className="
+                mt-4
+                text-6xl
+                font-black
+                tracking-tight
+                md:text-8xl
+              "
+            >
+              2025
+            </h1>
+
+            {/* DESCRIPCIÓN */}
+
+            <p
+              className="
+                mt-6
+                max-w-2xl
+                text-lg
+                leading-8
+                text-zinc-300
+                md:text-xl
+              "
+            >
+              {evento.descripcion ||
+                "Una edición especial de San Valentín de THE GAME ARCHIVE."}
+            </p>
+
+          </div>
+
+        </section>
+
+        {/* ==================================================
+            CONTENIDO PRINCIPAL
+            ================================================== */}
+
+        <div className="mx-auto max-w-7xl px-6 py-20">
+
+          {/* ==================================================
+              RESUMEN
+              ================================================== */}
+
+          <section className="mb-24">
+
+            <div className="mb-8">
+
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  uppercase
+                  tracking-[0.35em]
+                  text-rose-400
+                "
+              >
+                La edición
+              </p>
+
+              <h2
+                className="
+                  mt-3
+                  text-4xl
+                  font-black
+                  md:text-5xl
+                "
+              >
+                Resumen de la edición
+              </h2>
+
+            </div>
+
+            <div
+              className="
+                rounded-3xl
+                border
+                border-white/10
+                bg-black/55
+                p-8
+                backdrop-blur-md
+                md:p-12
+              "
+            >
+
+              <EditarTextoEdicion
+                valor={resumen}
+                campo="resumen"
+                edicionId={edicion.id}
+                multilinea
+                claseTexto="
+                  whitespace-pre-line
+                  text-lg
+                  leading-8
+                  text-zinc-200
+                  md:text-xl
+                "
+              />
+
+            </div>
+
+          </section>
+
+          {/* ==================================================
+              TEMÁTICA
+              ================================================== */}
+
+          <section className="mb-24">
+
+            <div className="mb-8">
+
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  uppercase
+                  tracking-[0.35em]
+                  text-rose-400
+                "
+              >
+                Temática
+              </p>
+
+              <h2
+                className="
+                  mt-3
+                  text-4xl
+                  font-black
+                  md:text-5xl
+                "
+              >
+                Temática de la edición
+              </h2>
+
+            </div>
+
+            <div
+              className="
+                rounded-3xl
+                border
+                border-rose-500/20
+                bg-black/55
+                p-8
+                backdrop-blur-md
+                md:p-12
+              "
+            >
+
+              <EditarTextoEdicion
+                valor={tematica}
+                campo="tematica"
+                edicionId={edicion.id}
+                multilinea
+                claseTexto="
+                  whitespace-pre-line
+                  text-2xl
+                  font-bold
+                  leading-9
+                  text-rose-200
+                  md:text-4xl
+                "
+              />
+
+            </div>
+
+          </section>
+
+          {/* ==================================================
+              PARTICIPANTES
+              ================================================== */}
+
+          <section className="mb-24">
+
+            <div className="mb-8">
+
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  uppercase
+                  tracking-[0.35em]
+                  text-rose-400
+                "
+              >
+                Los invitados
+              </p>
+
+              <h2
+                className="
+                  mt-3
+                  text-4xl
+                  font-black
+                  md:text-5xl
+                "
+              >
+                Participantes
+              </h2>
+
+              <p
+                className="
+                  mt-4
+                  max-w-2xl
+                  text-zinc-400
+                "
+              >
+                Agrega a las personas que participaron
+                en esta edición y registra el personaje
+                o disfraz que utilizaron.
+              </p>
+
+            </div>
+
+            <div
+              className="
+                rounded-3xl
+                border
+                border-white/10
+                bg-black/45
+                p-6
+                backdrop-blur-md
+                md:p-8
+              "
+            >
+
+              <ParticipantesMascarada
+                edicionId={edicion.id}
+                personas={personas}
+                participacionesIniciales={
+                  participaciones
+                }
+              />
+
+            </div>
+
+          </section>
+
+          {/* ==================================================
+              HISTORIA DEL EVENTO
+              ================================================== */}
+
+          <section className="mb-24 grid gap-8 md:grid-cols-2">
+
+            {/* HISTORIA */}
+
+            <div
+              className="
+                rounded-3xl
+                border
+                border-white/10
+                bg-black/50
+                p-8
+                backdrop-blur-md
+              "
+            >
+
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  uppercase
+                  tracking-[0.3em]
+                  text-rose-400
+                "
+              >
+                Evento
+              </p>
+
+              <h2
+                className="
+                  mt-3
+                  text-3xl
+                  font-black
+                "
+              >
+                San Valentín
+              </h2>
+
+              <p
+                className="
+                  mt-5
+                  whitespace-pre-line
+                  text-lg
+                  leading-8
+                  text-zinc-300
+                "
+              >
+                {evento.historia ||
+                  "San Valentín es uno de los eventos de THE GAME ARCHIVE."}
+              </p>
+
+            </div>
+
+            {/* ORIGEN */}
+
+            <div
+              className="
+                rounded-3xl
+                border
+                border-white/10
+                bg-black/50
+                p-8
+                backdrop-blur-md
+              "
+            >
+
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  uppercase
+                  tracking-[0.3em]
+                  text-rose-400
+                "
+              >
+                ¿Cómo nació?
+              </p>
+
+              <h2
+                className="
+                  mt-3
+                  text-3xl
+                  font-black
+                "
+              >
+                El origen
+              </h2>
+
+              <p
+                className="
+                  mt-5
+                  whitespace-pre-line
+                  text-lg
+                  leading-8
+                  text-zinc-300
+                "
+              >
+                {evento.como_nacio ||
+                  "Una instancia para compartir, celebrar y crear recuerdos."}
+              </p>
+
+            </div>
+
+          </section>
+
+          {/* ==================================================
+              GALERÍA
+              ÚLTIMA SECCIÓN
+              ================================================== */}
+
+          <section className="mb-24">
+
+            <div className="mb-8">
+
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  uppercase
+                  tracking-[0.35em]
+                  text-rose-400
+                "
+              >
+                Recuerdos
+              </p>
+
+              <h2
+                className="
+                  mt-3
+                  text-4xl
+                  font-black
+                  md:text-5xl
+                "
+              >
+                Galería
+              </h2>
+
+              <p
+                className="
+                  mt-4
+                  max-w-2xl
+                  text-zinc-400
+                "
+              >
+                Fotografías de San Valentín 2025.
+              </p>
+
+            </div>
+
+            <div
+              className="
+                rounded-3xl
+                border
+                border-white/10
+                bg-black/45
+                p-6
+                backdrop-blur-md
+                md:p-8
+              "
+            >
+
+              <GaleriaFotos
+                edicionId={edicion.id}
+              />
+
+            </div>
+
+          </section>
+
+        </div>
+
+        {/* ==================================================
+            FOOTER
+            ================================================== */}
+
+        <footer
+          className="
+            border-t
+            border-white/10
+            bg-black/60
+            px-6
+            py-10
+            text-center
+            backdrop-blur-md
+          "
+        >
+
+          <p
+            className="
+              text-xs
+              font-bold
+              uppercase
+              tracking-[0.35em]
+              text-rose-200/70
+            "
+          >
+            THE GAME ARCHIVE · SAN VALENTÍN 2025
+          </p>
+
+        </footer>
+
+      </div>
+
+    </main>
+  );
+}
