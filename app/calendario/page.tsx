@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Evento = {
   id: number;
@@ -90,29 +91,17 @@ export default function CalendarioPage() {
     new Date().getMonth()
   );
 
-  const [eventos, setEventos] =
-    useState<Evento[]>([]);
-
-  const [ediciones, setEdiciones] =
-    useState<Edicion[]>([]);
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [ediciones, setEdiciones] = useState<Edicion[]>([]);
+  const [cargando, setCargando] = useState(true);
 
   // =====================================================
-  // CARGAR EVENTOS
+  // CARGAR DATOS REALES DE SUPABASE
   // =====================================================
 
   useEffect(() => {
-    async function cargarEventosCalendario() {
-      const { createClient } =
-        await import(
-          "@supabase/supabase-js"
-        );
-
-      const supabase = createClient(
-        process.env
-          .NEXT_PUBLIC_SUPABASE_URL!,
-        process.env
-          .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-      );
+    async function cargarCalendario() {
+      setCargando(true);
 
       const [
         {
@@ -126,15 +115,11 @@ export default function CalendarioPage() {
       ] = await Promise.all([
         supabase
           .from("eventos")
-          .select(
-            "id, nombre, slug"
-          ),
+          .select("id, nombre, slug"),
 
         supabase
           .from("ediciones")
-          .select(
-            "id, evento_id, fecha"
-          ),
+          .select("id, evento_id, fecha"),
       ]);
 
       if (eventosError) {
@@ -151,16 +136,12 @@ export default function CalendarioPage() {
         );
       }
 
-      setEventos(
-        eventosData ?? []
-      );
-
-      setEdiciones(
-        edicionesData ?? []
-      );
+      setEventos(eventosData ?? []);
+      setEdiciones(edicionesData ?? []);
+      setCargando(false);
     }
 
-    cargarEventosCalendario();
+    cargarCalendario();
   }, []);
 
   // =====================================================
@@ -169,35 +150,40 @@ export default function CalendarioPage() {
 
   const mesDestacado =
     meses.find(
-      (mes) =>
-        mes.numero === mesActual
+      (mes) => mes.numero === mesActual
     ) ?? meses[0];
 
   // =====================================================
   // EVENTOS FIJOS DEL CALENDARIO
+  //
+  // Estos corresponden al calendario anual de
+  // THE GAME ARCHIVE.
+  //
+  // El nombre y el slug REAL se obtienen desde Supabase.
+  // =====================================================
+
+  const eventosFijosPorMes: Record<number, string> = {
+    0: "mascarada",
+    1: "san-valentin",
+    2: "fairyland",
+    3: "walpurgis",
+    4: "frikifest",
+    5: "wetripanto",
+    6: "winterween",
+    7: "pijamada-real",
+    8: "fonda-kakegurui",
+    9: "halloween",
+    10: "expofest",
+    11: "ugly-sweaters",
+  };
+
+  // =====================================================
+  // OBTENER EVENTO REAL DESDE SUPABASE
   // =====================================================
 
   function obtenerEventoDelMes(
     numeroMes: number
-  ) {
-    const eventosFijosPorMes: Record<
-      number,
-      string
-    > = {
-      0: "mascarada",
-      1: "san-valentin",
-      2: "fairyland",
-      3: "walpurgis",
-      4: "frikifest",
-      5: "wetripanto",
-      6: "winterween",
-      7: "pijamada-real",
-      8: "fonda-kakegurui",
-      9: "halloween",
-      10: "expofest",
-      11: "ugly-sweaters",
-    };
-
+  ): Evento | null {
     const slug =
       eventosFijosPorMes[numeroMes];
 
@@ -205,11 +191,27 @@ export default function CalendarioPage() {
       return null;
     }
 
-    return (
+    const evento =
       eventos.find(
-        (evento) =>
-          evento.slug === slug
-      ) ?? null
+        (item) => item.slug === slug
+      );
+
+    return evento ?? null;
+  }
+
+  // =====================================================
+  // OBTENER EDICIONES DEL EVENTO
+  //
+  // Esto permite saber si ya existen ediciones
+  // registradas para ese evento.
+  // =====================================================
+
+  function obtenerEdicionesDelEvento(
+    eventoId: number
+  ) {
+    return ediciones.filter(
+      (edicion) =>
+        edicion.evento_id === eventoId
     );
   }
 
@@ -218,9 +220,7 @@ export default function CalendarioPage() {
   // =====================================================
 
   const eventoDelMes =
-    obtenerEventoDelMes(
-      mesActual
-    );
+    obtenerEventoDelMes(mesActual);
 
   // =====================================================
   // RENDER
@@ -285,9 +285,11 @@ export default function CalendarioPage() {
                   </p>
 
                   <h1 className="mt-2 whitespace-nowrap text-4xl font-black uppercase leading-none tracking-tight text-white drop-shadow-2xl md:text-5xl lg:text-6xl">
-                    {eventoDelMes
-                      ? eventoDelMes.nombre
-                      : mesDestacado.nombre}
+                    {cargando
+                      ? "CARGANDO..."
+                      : eventoDelMes
+                        ? eventoDelMes.nombre
+                        : mesDestacado.nombre}
                   </h1>
 
                   <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#d4af37]/60 bg-black/60 px-4 py-2 text-xs font-bold text-[#f3d675] backdrop-blur-md md:text-sm">
@@ -334,16 +336,22 @@ export default function CalendarioPage() {
 
             {meses.map((mes) => {
               const esActual =
-                mes.numero ===
-                mesActual;
+                mes.numero === mesActual;
 
               const eventoDelMes =
                 obtenerEventoDelMes(
                   mes.numero
                 );
 
+              const edicionesEvento =
+                eventoDelMes
+                  ? obtenerEdicionesDelEvento(
+                      eventoDelMes.id
+                    )
+                  : [];
+
               // =================================================
-              // CON EVENTO
+              // CON EVENTO REAL
               // =================================================
 
               if (eventoDelMes) {
@@ -389,6 +397,15 @@ export default function CalendarioPage() {
                         <h3 className="mt-1 text-xl font-black uppercase text-white md:text-2xl">
                           {eventoDelMes.nombre}
                         </h3>
+
+                        {edicionesEvento.length > 0 && (
+                          <p className="mt-1 text-xs text-zinc-400">
+                            {edicionesEvento.length}{" "}
+                            {edicionesEvento.length === 1
+                              ? "edición registrada"
+                              : "ediciones registradas"}
+                          </p>
+                        )}
 
                       </div>
 
