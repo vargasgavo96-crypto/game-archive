@@ -172,7 +172,7 @@ const edicionesHistoricas: EdicionHistorica[] = [
     ],
   },
   {
-    año: 2018,
+    año: 2017,
     participantes: [
       {
         nombre: "Camilo Javier Avendaño Mancilla",
@@ -429,7 +429,7 @@ export default async function Halloween2024Page() {
 
           <p className="mt-8 text-lg leading-8 text-zinc-300">
             Aquí quedan reunidas las ediciones históricas de
-            Halloween, desde 2018 hasta 2024. Cada edición
+            Halloween, desde 2017 hasta 2024. Cada edición
             conserva sus resultados y su galería de fotografías.
           </p>
         </section>
@@ -864,7 +864,7 @@ export default async function Halloween2024Page() {
             <p>THE GAME ARCHIVE</p>
 
             <p>
-              Halloween · Archivo histórico · 2018–2024
+              Halloween · Archivo histórico · 2017–2024
             </p>
           </div>
         </footer>
