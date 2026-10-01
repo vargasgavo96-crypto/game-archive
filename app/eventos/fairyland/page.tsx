@@ -17,7 +17,7 @@ type Edicion = {
   id: number;
   evento_id: number;
   año: string;
-  fecha: string;
+  fecha: string | null;
   galeria_portada_url: string | null;
 };
 
@@ -59,8 +59,9 @@ export default async function FairylandPage() {
     error: edicionesError,
   } = await supabase
     .from("ediciones")
-    .select("*")
+    .select("id, evento_id, fecha, galeria_portada_url")
     .eq("evento_id", evento.id)
+    .eq("año", 2024)
     .order("fecha", {
       ascending: false,
     });
@@ -72,8 +73,15 @@ export default async function FairylandPage() {
     );
   }
 
-  const ediciones: Edicion[] =
-    edicionesData ?? [];
+  const ediciones: Edicion[] = (edicionesData ?? []).map(
+    (edicion) => ({
+      id: edicion.id,
+      evento_id: edicion.evento_id,
+      año: "2024",
+      fecha: edicion.fecha ?? null,
+      galeria_portada_url: edicion.galeria_portada_url ?? null,
+    })
+  );
 
   const historia =
     evento.historia ??
