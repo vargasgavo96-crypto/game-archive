@@ -67,7 +67,7 @@ export default async function MascaradaPage() {
   } = await supabase
     .from("ediciones")
     .select(
-      "id, evento_id, año, fecha, galeria_portada_url"
+      "id, evento_id, fecha, galeria_portada_url"
     )
     .eq("evento_id", evento.id)
     .order("fecha", {
