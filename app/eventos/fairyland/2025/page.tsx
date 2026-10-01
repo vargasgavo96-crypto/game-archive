@@ -19,8 +19,6 @@ type Evento = {
   descripcion: string | null;
   logo: string | null;
   slug: string;
-  historia: string | null;
-  como_nacio: string | null;
 };
 
 type Edicion = {
@@ -62,7 +60,7 @@ export default async function Fairyland2025Page() {
   } = await supabase
     .from("eventos")
     .select(
-      "id, nombre, descripcion, logo, slug, historia, como_nacio"
+      "id, nombre, descripcion, logo, slug"
     )
     .eq("slug", "fairyland")
     .single();
@@ -87,7 +85,9 @@ export default async function Fairyland2025Page() {
     error: edicionError,
   } = await supabase
     .from("ediciones")
-    .select("id, evento_id, fecha, contenido")
+    .select(
+      "id, evento_id, año, fecha, contenido"
+    )
     .eq("evento_id", evento.id)
     .eq("año", 2025)
     .single();
@@ -107,8 +107,10 @@ export default async function Fairyland2025Page() {
     año: 2025,
     fecha: edicionData.fecha ?? null,
     contenido:
-      (edicionData.contenido as Record<string, any> | null) ??
-      {},
+      (edicionData.contenido as Record<
+        string,
+        any
+      > | null) ?? {},
   };
 
   // ==========================================================
@@ -160,7 +162,8 @@ export default async function Fairyland2025Page() {
   }
 
   const participaciones: Participacion[] =
-    (participacionesData ?? []) as Participacion[];
+    (participacionesData ??
+      []) as Participacion[];
 
   // ==========================================================
   // CONTENIDO EDITABLE
@@ -168,13 +171,74 @@ export default async function Fairyland2025Page() {
 
   const contenido = edicion.contenido ?? {};
 
+  // ==========================================================
+  // HERO
+  // ==========================================================
+
+  const heroEtiqueta =
+    contenido.hero_etiqueta ??
+    "FAIRYLAND";
+
+  const heroDescripcion =
+    contenido.hero_descripcion ??
+    evento.descripcion ??
+    "Evento de THE GAME ARCHIVE.";
+
+  // ==========================================================
+  // RESUMEN
+  // ==========================================================
+
+  const resumenEtiqueta =
+    contenido.resumen_etiqueta ??
+    "LA EDICIÓN";
+
+  const resumenTitulo =
+    contenido.resumen_titulo ??
+    "Resumen de la edición";
+
   const resumen =
     contenido.resumen ??
     "Escribe aquí el resumen de Fairyland 2025.";
 
+  // ==========================================================
+  // TEMÁTICA
+  // ==========================================================
+
+  const tematicaEtiqueta =
+    contenido.tematica_etiqueta ??
+    "FAIRYLAND";
+
+  const tematicaTitulo =
+    contenido.tematica_titulo ??
+    "Temática de la edición";
+
   const tematica =
     contenido.tematica ??
     "Escribe aquí la temática de Fairyland 2025.";
+
+  // ==========================================================
+  // PARTICIPANTES
+  // ==========================================================
+
+  const participantesEtiqueta =
+    contenido.participantes_etiqueta ??
+    "LOS PARTICIPANTES";
+
+  const participantesTitulo =
+    contenido.participantes_titulo ??
+    "Participantes";
+
+  // ==========================================================
+  // GALERÍA
+  // ==========================================================
+
+  const recuerdosEtiqueta =
+    contenido.recuerdos_etiqueta ??
+    "RECUERDOS";
+
+  const galeriaTitulo =
+    contenido.galeria_titulo ??
+    "Galería";
 
   // ==========================================================
   // RENDER
@@ -202,9 +266,7 @@ export default async function Fairyland2025Page() {
         }}
       />
 
-      {/* ======================================================
-          CAPA OSCURA
-          ====================================================== */}
+      {/* CAPA OSCURA */}
 
       <div
         className="
@@ -267,8 +329,33 @@ export default async function Fairyland2025Page() {
             "
           >
 
-            <p
-              className="
+            {/* =================================================
+                LOGO
+                ================================================= */}
+
+            {evento.logo && (
+              <img
+                src={evento.logo}
+                alt={evento.nombre}
+                className="
+                  mb-10
+                  max-h-72
+                  max-w-md
+                  object-contain
+                  drop-shadow-[0_10px_35px_rgba(0,0,0,0.8)]
+                "
+              />
+            )}
+
+            {/* =================================================
+                ETIQUETA EDITABLE
+                ================================================= */}
+
+            <EditarTextoEdicion
+              valor={heroEtiqueta}
+              campo="hero_etiqueta"
+              edicionId={edicion.id}
+              claseTexto="
                 text-sm
                 font-bold
                 uppercase
@@ -277,9 +364,11 @@ export default async function Fairyland2025Page() {
                 drop-shadow-lg
                 sm:text-base
               "
-            >
-              FAIRYLAND
-            </p>
+            />
+
+            {/* =================================================
+                AÑO
+                ================================================= */}
 
             <h1
               className="
@@ -297,8 +386,17 @@ export default async function Fairyland2025Page() {
               2025
             </h1>
 
-            <p
-              className="
+            {/* =================================================
+                DESCRIPCIÓN EDITABLE
+                ================================================= */}
+
+            <EditarTextoEdicion
+              valor={heroDescripcion}
+              campo="hero_descripcion"
+              edicionId={edicion.id}
+              multilinea
+              claseTexto="
+                mx-auto
                 mt-8
                 max-w-3xl
                 text-lg
@@ -309,10 +407,7 @@ export default async function Fairyland2025Page() {
                 sm:text-xl
                 md:text-2xl
               "
-            >
-              {evento.descripcion ||
-                "Evento de THE GAME ARCHIVE."}
-            </p>
+            />
 
           </div>
         </section>
@@ -334,15 +429,18 @@ export default async function Fairyland2025Page() {
         >
 
           {/* ==================================================
-              1. RESUMEN DE LA EDICIÓN
+              RESUMEN
               ================================================== */}
 
           <section className="mb-24">
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={resumenEtiqueta}
+                campo="resumen_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -350,12 +448,13 @@ export default async function Fairyland2025Page() {
                   text-purple-200
                   drop-shadow-lg
                 "
-              >
-                LA EDICIÓN
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={resumenTitulo}
+                campo="resumen_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -365,9 +464,7 @@ export default async function Fairyland2025Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Resumen de la edición
-              </h2>
+              />
 
             </div>
 
@@ -404,15 +501,18 @@ export default async function Fairyland2025Page() {
           </section>
 
           {/* ==================================================
-              2. TEMÁTICA
+              TEMÁTICA
               ================================================== */}
 
           <section className="mb-24">
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={tematicaEtiqueta}
+                campo="tematica_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -420,12 +520,13 @@ export default async function Fairyland2025Page() {
                   text-purple-200
                   drop-shadow-lg
                 "
-              >
-                FAIRYLAND
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={tematicaTitulo}
+                campo="tematica_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -435,9 +536,7 @@ export default async function Fairyland2025Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Temática de la edición
-              </h2>
+              />
 
             </div>
 
@@ -476,15 +575,18 @@ export default async function Fairyland2025Page() {
           </section>
 
           {/* ==================================================
-              3. PARTICIPANTES
+              PARTICIPANTES
               ================================================== */}
 
           <section className="mb-24">
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={participantesEtiqueta}
+                campo="participantes_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -492,12 +594,13 @@ export default async function Fairyland2025Page() {
                   text-purple-200
                   drop-shadow-lg
                 "
-              >
-                LOS PARTICIPANTES
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={participantesTitulo}
+                campo="participantes_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -507,9 +610,7 @@ export default async function Fairyland2025Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Participantes
-              </h2>
+              />
 
             </div>
 
@@ -539,15 +640,18 @@ export default async function Fairyland2025Page() {
           </section>
 
           {/* ==================================================
-              4. HISTORIA DEL EVENTO
+              GALERÍA
               ================================================== */}
 
           <section className="mb-24">
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={recuerdosEtiqueta}
+                campo="recuerdos_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -555,12 +659,13 @@ export default async function Fairyland2025Page() {
                   text-purple-200
                   drop-shadow-lg
                 "
-              >
-                HISTORIA
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={galeriaTitulo}
+                campo="galeria_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -570,147 +675,7 @@ export default async function Fairyland2025Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Historia del evento
-              </h2>
-
-            </div>
-
-            <div
-              className="
-                rounded-3xl
-                border
-                border-white/15
-                bg-black/35
-                p-6
-                shadow-2xl
-                backdrop-blur-sm
-                sm:p-8
-                md:p-10
-              "
-            >
-
-              <p
-                className="
-                  whitespace-pre-line
-                  text-lg
-                  leading-8
-                  text-white
-                  sm:text-xl
-                "
-              >
-                {evento.historia ||
-                  "Fairyland es un evento de THE GAME ARCHIVE."}
-              </p>
-
-            </div>
-
-          </section>
-
-          {/* ==================================================
-              5. ¿CÓMO NACIÓ?
-              ================================================== */}
-
-          <section className="mb-24">
-
-            <div className="mb-8">
-
-              <p
-                className="
-                  text-sm
-                  font-bold
-                  uppercase
-                  tracking-[0.4em]
-                  text-purple-200
-                  drop-shadow-lg
-                "
-              >
-                EL ORIGEN
-              </p>
-
-              <h2
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                  leading-tight
-                  text-white
-                  drop-shadow-[0_5px_15px_rgba(0,0,0,0.9)]
-                  sm:text-5xl
-                  md:text-6xl
-                "
-              >
-                ¿Cómo nació?
-              </h2>
-
-            </div>
-
-            <div
-              className="
-                rounded-3xl
-                border
-                border-white/15
-                bg-black/35
-                p-6
-                shadow-2xl
-                backdrop-blur-sm
-                sm:p-8
-                md:p-10
-              "
-            >
-
-              <p
-                className="
-                  whitespace-pre-line
-                  text-lg
-                  leading-8
-                  text-white
-                  sm:text-xl
-                "
-              >
-                {evento.como_nacio ||
-                  "Una instancia para compartir, jugar y crear recuerdos."}
-              </p>
-
-            </div>
-
-          </section>
-
-          {/* ==================================================
-              6. GALERÍA — ÚLTIMA SECCIÓN
-              ================================================== */}
-
-          <section className="mb-24">
-
-            <div className="mb-8">
-
-              <p
-                className="
-                  text-sm
-                  font-bold
-                  uppercase
-                  tracking-[0.4em]
-                  text-purple-200
-                  drop-shadow-lg
-                "
-              >
-                RECUERDOS
-              </p>
-
-              <h2
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                  leading-tight
-                  text-white
-                  drop-shadow-[0_5px_15px_rgba(0,0,0,0.9)]
-                  sm:text-5xl
-                  md:text-6xl
-                "
-              >
-                Galería
-              </h2>
+              />
 
             </div>
 

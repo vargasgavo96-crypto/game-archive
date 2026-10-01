@@ -2,9 +2,7 @@ import { supabase } from "@/lib/supabase";
 import GaleriaEdiciones from "@/app/components/GaleriaEdiciones";
 
 // =====================================================
-// IMPORTANTE:
-// Esta página siempre consulta los datos actuales
-// directamente desde Supabase.
+// CONFIGURACIÓN
 // =====================================================
 
 export const dynamic = "force-dynamic";
@@ -25,16 +23,8 @@ type Edicion = {
   evento_id: number;
   año: string;
   fecha: string | null;
-};
-
-type Foto = {
-  id: number;
-  edicion_id: number;
-  imagen: string;
-  descripcion: string | null;
-  orden: number | null;
-  created_at: string;
-  portada: boolean;
+  galeria_drive_url: string | null;
+  galeria_portada_url: string | null;
 };
 
 // =====================================================
@@ -42,63 +32,51 @@ type Foto = {
 // =====================================================
 
 export default async function GaleriaPage() {
-  const [
-    { data: eventosData, error: eventosError },
-    { data: edicionesData, error: edicionesError },
-    { data: fotosData, error: fotosError },
-  ] = await Promise.all([
-    // ===================================================
-    // EVENTOS
-    // ===================================================
+  // ===================================================
+  // EVENTOS
+  // ===================================================
 
-    supabase
-      .from("eventos")
-      .select("id, nombre, logo")
-      .order("nombre", {
-        ascending: true,
-      }),
+  const {
+    data: eventosData,
+    error: eventosError,
+  } = await supabase
+    .from("eventos")
+    .select("id, nombre, logo")
+    .order("nombre", {
+      ascending: true,
+    });
 
-    // ===================================================
-    // EDICIONES
-    // ===================================================
+  // ===================================================
+  // EDICIONES
+  // ===================================================
 
-    supabase
-      .from("ediciones")
-      .select("id, evento_id, año, fecha")
-      .order("fecha", {
-        ascending: false,
-      }),
+  const {
+    data: edicionesData,
+    error: edicionesError,
+  } = await supabase
+    .from("ediciones")
+    .select(
+      `
+        id,
+        evento_id,
+        año,
+        fecha,
+        galeria_drive_url,
+        galeria_portada_url
+      `
+    )
+    .order("fecha", {
+      ascending: false,
+    });
 
-    // ===================================================
-    // FOTOS
-    // ===================================================
-
-    supabase
-      .from("galerias")
-      .select(
-        "id, edicion_id, imagen, descripcion, orden, created_at, portada"
-      )
-      .order("orden", {
-        ascending: true,
-      })
-      .order("created_at", {
-        ascending: true,
-      }),
-  ]);
-
-  // =====================================================
+  // ===================================================
   // ERRORES
-  // =====================================================
+  // ===================================================
 
-  if (
-    eventosError ||
-    edicionesError ||
-    fotosError
-  ) {
+  if (eventosError || edicionesError) {
     console.error({
       eventosError,
       edicionesError,
-      fotosError,
     });
 
     return (
@@ -120,9 +98,9 @@ export default async function GaleriaPage() {
     );
   }
 
-  // =====================================================
-  // CONVERTIR DATOS
-  // =====================================================
+  // ===================================================
+  // DATOS
+  // ===================================================
 
   const eventos =
     (eventosData ?? []) as unknown as Evento[];
@@ -130,51 +108,25 @@ export default async function GaleriaPage() {
   const ediciones =
     (edicionesData ?? []) as unknown as Edicion[];
 
-  const fotos =
-    (fotosData ?? []) as unknown as Foto[];
-
-  // =====================================================
+  // ===================================================
   // MAPA DE EVENTOS
-  // =====================================================
+  // ===================================================
 
   const mapaEventos = new Map<number, Evento>();
 
   for (const evento of eventos) {
-    mapaEventos.set(
-      evento.id,
-      evento
-    );
+    mapaEventos.set(evento.id, evento);
   }
 
-  // =====================================================
-  // MAPA DE FOTOS POR EDICIÓN
-  // =====================================================
-
-  const mapaFotos =
-    new Map<number, Foto[]>();
-
-  for (const foto of fotos) {
-    const fotosEdicion =
-      mapaFotos.get(foto.edicion_id) ?? [];
-
-    fotosEdicion.push(foto);
-
-    mapaFotos.set(
-      foto.edicion_id,
-      fotosEdicion
-    );
-  }
-
-  // =====================================================
-  // CONSTRUIR EDICIONES DE GALERÍA
-  // =====================================================
+  // ===================================================
+  // CONSTRUIR EDICIONES
+  // ===================================================
 
   const edicionesGaleria = ediciones
     .map((edicion) => {
-      const evento =
-        mapaEventos.get(
-          edicion.evento_id
-        );
+      const evento = mapaEventos.get(
+        edicion.evento_id
+      );
 
       if (!evento) {
         return null;
@@ -193,15 +145,11 @@ export default async function GaleriaPage() {
 
         fecha: edicion.fecha,
 
-        // =================================================
-        // FOTOS ACTUALES DESDE SUPABASE
-        //
-        // Cada foto incluye:
-        // portada: true / false
-        // =================================================
+        galeriaPortadaUrl:
+          edicion.galeria_portada_url,
 
-        fotos:
-          mapaFotos.get(edicion.id) ?? [],
+        galeriaDriveUrl:
+          edicion.galeria_drive_url,
       };
     })
     .filter(
@@ -213,9 +161,9 @@ export default async function GaleriaPage() {
         edicion !== null
     );
 
-  // =====================================================
-  // PÁGINA
-  // =====================================================
+  // ===================================================
+  // RENDER
+  // ===================================================
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black">
@@ -233,7 +181,7 @@ export default async function GaleriaPage() {
       />
 
       {/* =================================================
-          OSCURECER FONDO
+          OSCURECER
           ================================================= */}
 
       <div className="fixed inset-0 bg-black/65" />
@@ -274,7 +222,7 @@ export default async function GaleriaPage() {
         </section>
 
         {/* =================================================
-            GALERÍAS
+            EDICIONES
             ================================================= */}
 
         <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">

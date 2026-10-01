@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase";
+
 import EditarTexto from "@/app/components/EditarTexto";
+import EditarPortadaEdicion from "@/app/components/EditarPortadaEdicion";
 
 type Evento = {
   id: number;
@@ -17,6 +19,7 @@ type Edicion = {
   año: string;
   fecha: string | null;
   contenido: Record<string, string> | null;
+  galeria_portada_url: string | null;
 };
 
 type Persona = {
@@ -42,17 +45,8 @@ type Premio = {
   imagen: string | null;
 };
 
-function nombreCorto(nombre: string) {
-  const partes = nombre.trim().split(/\s+/);
-
-  if (partes.length === 1) {
-    return partes[0];
-  }
-
-  return `${partes[0]} ${partes[partes.length - 2]}`;
-}
-
 export default async function UglySweatersPage() {
+
   // =====================================================
   // EVENTO
   // =====================================================
@@ -76,7 +70,9 @@ export default async function UglySweatersPage() {
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
+
         <div className="text-center">
+
           <h1 className="text-3xl font-bold text-red-400">
             No se pudo cargar Ugly Sweaters Party
           </h1>
@@ -84,7 +80,9 @@ export default async function UglySweatersPage() {
           <p className="mt-3 text-zinc-400">
             El evento no pudo ser encontrado.
           </p>
+
         </div>
+
       </main>
     );
   }
@@ -99,7 +97,7 @@ export default async function UglySweatersPage() {
   } = await supabase
     .from("ediciones")
     .select(
-      "id, evento_id, año, fecha, contenido"
+      "id, evento_id, año, fecha, contenido, galeria_portada_url"
     )
     .eq("evento_id", evento.id)
     .eq("año", 2026)
@@ -122,6 +120,7 @@ export default async function UglySweatersPage() {
   let premio2026: Premio | null = null;
 
   if (edicion2026) {
+
     const {
       data: premioData,
       error: premioError,
@@ -157,6 +156,7 @@ export default async function UglySweatersPage() {
     | null = null;
 
   if (edicion2026) {
+
     const {
       data: participacionData,
       error: participacionError,
@@ -198,6 +198,7 @@ export default async function UglySweatersPage() {
     | null = null;
 
   if (ganadorId) {
+
     const {
       data: personaData,
       error: personaError,
@@ -222,7 +223,7 @@ export default async function UglySweatersPage() {
   }
 
   // =====================================================
-  // IMAGEN DE 2026
+  // IMAGEN DE RESPALDO 2026
   // =====================================================
 
   const imagen2026 =
@@ -243,10 +244,25 @@ export default async function UglySweatersPage() {
     "Una instancia para compartir, jugar y crear recuerdos.";
 
   // =====================================================
+  // PORTADA DE 2026
+  //
+  // Primero usa la portada personalizada de la edición.
+  // Si no existe, usa la imagen del ganador.
+  // Si tampoco existe, usa el logo.
+  // =====================================================
+
+  const portada2026 =
+    edicion2026?.galeria_portada_url ??
+    imagen2026 ??
+    evento.logo ??
+    "/eventos/ugly-sweaters.png";
+
+  // =====================================================
   // RENDER
   // =====================================================
 
   return (
+
     <main className="relative min-h-screen text-white">
 
       {/* =================================================
@@ -317,6 +333,7 @@ export default async function UglySweatersPage() {
             {/* LOGO */}
 
             {evento.logo && (
+
               <img
                 src={evento.logo}
                 alt={evento.nombre}
@@ -327,6 +344,7 @@ export default async function UglySweatersPage() {
                   drop-shadow-[0_10px_45px_rgba(0,0,0,0.8)]
                 "
               />
+
             )}
 
             {/* IDENTIDAD */}
@@ -528,7 +546,7 @@ export default async function UglySweatersPage() {
           <div
             className="
               mx-auto
-              max-w-6xl
+              max-w-7xl
               px-6
               py-28
             "
@@ -581,7 +599,7 @@ export default async function UglySweatersPage() {
             </div>
 
             {/* =================================================
-                DOS TARJETAS
+                DOS TARJETAS — 3 COLUMNAS
                 ================================================= */}
 
             <div
@@ -589,9 +607,11 @@ export default async function UglySweatersPage() {
                 mx-auto
                 mt-16
                 grid
-                max-w-5xl
+                max-w-7xl
+                grid-cols-1
                 gap-6
                 md:grid-cols-2
+                xl:grid-cols-3
               "
             >
 
@@ -599,8 +619,7 @@ export default async function UglySweatersPage() {
                   TARJETA 2026
                   ================================================= */}
 
-              <a
-                href="/eventos/ugly-sweaters/2026"
+              <div
                 className="
                   group
                   relative
@@ -617,207 +636,195 @@ export default async function UglySweatersPage() {
                 "
               >
 
-                {/* IMAGEN */}
-
-                <div
-                  className="
-                    relative
-                    h-[390px]
-                    overflow-hidden
-                    bg-zinc-950
-                  "
+                <a
+                  href="/eventos/ugly-sweaters/2026"
+                  className="block"
                 >
 
-                  {imagen2026 ? (
+                  {/* IMAGEN */}
 
-                    <>
-                      {/* FONDO DIFUMINADO */}
+                  <div
+                    className="
+                      relative
+                      h-[390px]
+                      overflow-hidden
+                      bg-zinc-950
+                    "
+                  >
 
-                      <div
-                        className="
-                          absolute
-                          inset-0
-                          scale-110
-                          bg-cover
-                          bg-center
-                          opacity-35
-                          blur-2xl
-                          transition
-                          duration-700
-                          group-hover:scale-125
-                        "
-                        style={{
-                          backgroundImage:
-                            `url('${imagen2026}')`,
-                        }}
-                      />
-
-                      {/* FOTO */}
-
-                      <img
-                        src={imagen2026}
-                        alt="Ugly Sweaters Party 2026"
-                        className="
-                          relative
-                          z-10
-                          h-full
-                          w-full
-                          object-cover
-                          transition
-                          duration-700
-                          group-hover:scale-105
-                        "
-                      />
-                    </>
-
-                  ) : (
+                    {/* FONDO DIFUMINADO */}
 
                     <div
                       className="
-                        flex
+                        absolute
+                        inset-0
+                        scale-110
+                        bg-cover
+                        bg-center
+                        opacity-35
+                        blur-2xl
+                        transition
+                        duration-700
+                        group-hover:scale-125
+                      "
+                      style={{
+                        backgroundImage:
+                          `url('${portada2026}')`,
+                      }}
+                    />
+
+                    {/* FOTO */}
+
+                    <img
+                      src={portada2026}
+                      alt="Ugly Sweaters Party 2026"
+                      className="
+                        relative
+                        z-10
                         h-full
-                        items-center
-                        justify-center
-                        bg-zinc-950
+                        w-full
+                        object-cover
+                        transition
+                        duration-700
+                        group-hover:scale-105
+                      "
+                    />
+
+                    {/* DEGRADADO */}
+
+                    <div
+                      className="
+                        absolute
+                        inset-0
+                        z-20
+                        bg-gradient-to-t
+                        from-black
+                        via-black/20
+                        to-transparent
+                      "
+                    />
+
+                    {/* INFORMACIÓN SOBRE FOTO */}
+
+                    <div
+                      className="
+                        absolute
+                        bottom-7
+                        left-7
+                        z-30
                       "
                     >
 
-                      {evento.logo && (
-                        <img
-                          src={evento.logo}
-                          alt="Ugly Sweaters Party"
-                          className="
-                            max-h-48
-                            max-w-[70%]
-                            object-contain
-                            opacity-80
-                          "
-                        />
-                      )}
+                      <p
+                        className="
+                          text-xs
+                          font-bold
+                          uppercase
+                          tracking-[0.35em]
+                          text-violet-300
+                        "
+                      >
+                        Edición actual
+                      </p>
+
+                      <h3
+                        className="
+                          mt-1
+                          text-6xl
+                          font-black
+                        "
+                      >
+                        2026
+                      </h3>
 
                     </div>
 
-                  )}
-
-                  {/* DEGRADADO */}
-
-                  <div
-                    className="
-                      absolute
-                      inset-0
-                      z-20
-                      bg-gradient-to-t
-                      from-black
-                      via-black/20
-                      to-transparent
-                    "
-                  />
-
-                  {/* INFORMACIÓN SOBRE FOTO */}
-
-                  <div
-                    className="
-                      absolute
-                      bottom-7
-                      left-7
-                      z-30
-                    "
-                  >
-
-                    <p
-                      className="
-                        text-xs
-                        font-bold
-                        uppercase
-                        tracking-[0.35em]
-                        text-violet-300
-                      "
-                    >
-                      Edición actual
-                    </p>
-
-                    <h3
-                      className="
-                        mt-1
-                        text-6xl
-                        font-black
-                      "
-                    >
-                      2026
-                    </h3>
-
                   </div>
 
-                </div>
+                  {/* INFORMACIÓN */}
 
-                {/* INFORMACIÓN */}
-
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    gap-5
-                    border-t
-                    border-white/10
-                    px-7
-                    py-6
-                  "
-                >
-
-                  <div>
-
-                    <p
-                      className="
-                        text-xs
-                        font-bold
-                        uppercase
-                        tracking-[0.2em]
-                        text-zinc-500
-                      "
-                    >
-                      Ugly Sweaters Party
-                    </p>
-
-                    <p
-                      className="
-                        mt-1
-                        text-xl
-                        font-bold
-                        text-white
-                      "
-                    >
-                      Edición 2026
-                    </p>
-
-                  </div>
-
-                  <span
+                  <div
                     className="
                       flex
-                      h-11
-                      w-11
-                      shrink-0
                       items-center
-                      justify-center
-                      rounded-full
-                      border
+                      justify-between
+                      gap-5
+                      border-t
                       border-white/10
-                      text-lg
-                      text-zinc-500
-                      transition
-                      duration-300
-                      group-hover:border-violet-400/40
-                      group-hover:bg-violet-500/10
-                      group-hover:text-violet-400
+                      px-7
+                      py-6
                     "
                   >
-                    →
-                  </span>
 
-                </div>
+                    <div>
 
-              </a>
+                      <p
+                        className="
+                          text-xs
+                          font-bold
+                          uppercase
+                          tracking-[0.2em]
+                          text-zinc-500
+                        "
+                      >
+                        Ugly Sweaters Party
+                      </p>
+
+                      <p
+                        className="
+                          mt-1
+                          text-xl
+                          font-bold
+                          text-white
+                        "
+                      >
+                        Edición 2026
+                      </p>
+
+                    </div>
+
+                    <span
+                      className="
+                        flex
+                        h-11
+                        w-11
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        border
+                        border-white/10
+                        text-lg
+                        text-zinc-500
+                        transition
+                        duration-300
+                        group-hover:border-violet-400/40
+                        group-hover:bg-violet-500/10
+                        group-hover:text-violet-400
+                      "
+                    >
+                      →
+                    </span>
+
+                  </div>
+
+                </a>
+
+                {/* =================================================
+                    EDITAR PORTADA
+                    EXACTAMENTE COMO LA MASCARADA
+                    ================================================= */}
+
+                {edicion2026 && (
+
+                  <EditarPortadaEdicion
+                    edicionId={edicion2026.id}
+                  />
+
+                )}
+
+              </div>
+
 
               {/* =================================================
                   TARJETA HISTÓRICO
@@ -841,9 +848,7 @@ export default async function UglySweatersPage() {
                 "
               >
 
-                {/* =================================================
-                    IMAGEN / LOGO
-                    ================================================= */}
+                {/* IMAGEN / LOGO */}
 
                 <div
                   className="
@@ -915,6 +920,7 @@ export default async function UglySweatersPage() {
                     {/* LOGO */}
 
                     {evento.logo && (
+
                       <img
                         src={evento.logo}
                         alt="Ugly Sweaters Party"
@@ -928,6 +934,7 @@ export default async function UglySweatersPage() {
                           group-hover:scale-105
                         "
                       />
+
                     )}
 
                     {/* LÍNEA */}

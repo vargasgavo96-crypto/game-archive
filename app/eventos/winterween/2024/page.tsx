@@ -19,8 +19,6 @@ type Evento = {
   descripcion: string | null;
   logo: string | null;
   slug: string;
-  historia: string | null;
-  como_nacio: string | null;
 };
 
 type Edicion = {
@@ -28,7 +26,7 @@ type Edicion = {
   evento_id: number;
   año: number;
   fecha: string | null;
-  contenido: Record<string, any> | null;
+  contenido: Record<string, string> | null;
 };
 
 type Persona = {
@@ -52,6 +50,7 @@ type Participacion = {
 // ============================================================
 
 export default async function Winterween2024Page() {
+
   // ==========================================================
   // EVENTO
   // ==========================================================
@@ -62,12 +61,13 @@ export default async function Winterween2024Page() {
   } = await supabase
     .from("eventos")
     .select(
-      "id, nombre, descripcion, logo, slug, historia, como_nacio"
+      "id, nombre, descripcion, logo, slug"
     )
     .eq("slug", "winterween")
     .single();
 
   if (eventoError || !eventoData) {
+
     console.error(
       "Error cargando Winterween:",
       eventoError
@@ -87,12 +87,15 @@ export default async function Winterween2024Page() {
     error: edicionError,
   } = await supabase
     .from("ediciones")
-    .select("id, evento_id, fecha, contenido")
+    .select(
+      "id, evento_id, fecha, contenido"
+    )
     .eq("evento_id", evento.id)
     .eq("año", 2024)
     .single();
 
   if (edicionError || !edicionData) {
+
     console.error(
       "Error cargando Winterween 2024:",
       edicionError
@@ -107,8 +110,10 @@ export default async function Winterween2024Page() {
     año: 2024,
     fecha: edicionData.fecha ?? null,
     contenido:
-      (edicionData.contenido as Record<string, any> | null) ??
-      {},
+      (edicionData.contenido as Record<
+        string,
+        string
+      > | null) ?? {},
   };
 
   // ==========================================================
@@ -120,12 +125,15 @@ export default async function Winterween2024Page() {
     error: personasError,
   } = await supabase
     .from("personas")
-    .select("id, nombre, imagen")
+    .select(
+      "id, nombre, imagen"
+    )
     .order("nombre", {
       ascending: true,
     });
 
   if (personasError) {
+
     console.error(
       "Error cargando personas:",
       personasError
@@ -153,6 +161,7 @@ export default async function Winterween2024Page() {
     });
 
   if (participacionesError) {
+
     console.error(
       "Error cargando participaciones:",
       participacionesError
@@ -160,34 +169,117 @@ export default async function Winterween2024Page() {
   }
 
   const participaciones: Participacion[] =
-    (participacionesData ?? []) as Participacion[];
+    (participacionesData ??
+      []) as Participacion[];
 
   // ==========================================================
   // CONTENIDO EDITABLE
   // ==========================================================
 
-  const contenido = edicion.contenido ?? {};
+  const contenido =
+    edicion.contenido ?? {};
+
+  // ==========================================================
+  // HERO
+  // ==========================================================
+
+  const heroEtiqueta =
+    contenido.hero_etiqueta ??
+    "WINTERWEEN";
+
+  const heroTitulo =
+    contenido.hero_titulo ??
+    "2024";
+
+  const heroDescripcion =
+    contenido.hero_descripcion ??
+    "Una nueva edición de Winterween.";
+
+  // ==========================================================
+  // RESUMEN
+  // ==========================================================
+
+  const resumenEtiqueta =
+    contenido.resumen_etiqueta ??
+    "LA EDICIÓN";
+
+  const resumenTitulo =
+    contenido.resumen_titulo ??
+    "Resumen de la edición";
 
   const resumen =
     contenido.resumen ??
     "Escribe aquí el resumen de Winterween 2024.";
+
+  // ==========================================================
+  // TEMÁTICA
+  // ==========================================================
+
+  const tematicaEtiqueta =
+    contenido.tematica_etiqueta ??
+    "WINTERWEEN";
+
+  const tematicaTitulo =
+    contenido.tematica_titulo ??
+    "Temática de la edición";
 
   const tematica =
     contenido.tematica ??
     "Escribe aquí la temática de Winterween 2024.";
 
   // ==========================================================
+  // PARTICIPANTES
+  // ==========================================================
+
+  const participantesEtiqueta =
+    contenido.participantes_etiqueta ??
+    "LOS PARTICIPANTES";
+
+  const participantesTitulo =
+    contenido.participantes_titulo ??
+    "Participantes";
+
+  // ==========================================================
+  // GALERÍA
+  // ==========================================================
+
+  const galeriaEtiqueta =
+    contenido.galeria_etiqueta ??
+    "RECUERDOS";
+
+  const galeriaTitulo =
+    contenido.galeria_titulo ??
+    "Galería";
+
+  // ==========================================================
+  // FOOTER
+  // ==========================================================
+
+  const footerTitulo =
+    contenido.footer_titulo ??
+    "THE GAME ARCHIVE";
+
+  const footerDescripcion =
+    contenido.footer_descripcion ??
+    "Winterween · 2024";
+
+  // ==========================================================
   // RENDER
   // ==========================================================
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden text-white">
+
+    <main
+      className="
+        relative
+        min-h-screen
+        overflow-x-hidden
+        text-white
+      "
+    >
 
       {/* ======================================================
-          FONDO WINTERWEEN
-
-          Ocupa toda la pantalla y permanece fijo mientras
-          se recorre toda la página.
+          FONDO
           ====================================================== */}
 
       <div
@@ -244,11 +336,7 @@ export default async function Winterween2024Page() {
             className="
               absolute
               inset-0
-              bg-[radial-gradient(
-                circle_at_center,
-                rgba(59,130,246,0.12),
-                transparent_55%
-              )]
+              bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.12),transparent_55%)]
             "
           />
 
@@ -270,8 +358,13 @@ export default async function Winterween2024Page() {
             "
           >
 
-            <p
-              className="
+            {/* ETIQUETA */}
+
+            <EditarTextoEdicion
+              valor={heroEtiqueta}
+              campo="hero_etiqueta"
+              edicionId={edicion.id}
+              claseTexto="
                 text-sm
                 font-bold
                 uppercase
@@ -280,12 +373,15 @@ export default async function Winterween2024Page() {
                 drop-shadow-lg
                 sm:text-base
               "
-            >
-              WINTERWEEN
-            </p>
+            />
 
-            <h1
-              className="
+            {/* AÑO */}
+
+            <EditarTextoEdicion
+              valor={heroTitulo}
+              campo="hero_titulo"
+              edicionId={edicion.id}
+              claseTexto="
                 mt-3
                 text-7xl
                 font-black
@@ -296,12 +392,16 @@ export default async function Winterween2024Page() {
                 sm:text-8xl
                 md:text-9xl
               "
-            >
-              2024
-            </h1>
+            />
 
-            <p
-              className="
+            {/* DESCRIPCIÓN */}
+
+            <EditarTextoEdicion
+              valor={heroDescripcion}
+              campo="hero_descripcion"
+              edicionId={edicion.id}
+              multilinea
+              claseTexto="
                 mt-8
                 max-w-3xl
                 text-lg
@@ -312,12 +412,10 @@ export default async function Winterween2024Page() {
                 sm:text-xl
                 md:text-2xl
               "
-            >
-              {evento.descripcion ||
-                "Evento de THE GAME ARCHIVE."}
-            </p>
+            />
 
           </div>
+
         </section>
 
         {/* ====================================================
@@ -337,15 +435,18 @@ export default async function Winterween2024Page() {
         >
 
           {/* ==================================================
-              1. RESUMEN DE LA EDICIÓN
+              1. RESUMEN
               ================================================== */}
 
           <section className="mb-24">
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={resumenEtiqueta}
+                campo="resumen_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -353,12 +454,13 @@ export default async function Winterween2024Page() {
                   text-blue-200
                   drop-shadow-lg
                 "
-              >
-                LA EDICIÓN
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={resumenTitulo}
+                campo="resumen_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -368,9 +470,7 @@ export default async function Winterween2024Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Resumen de la edición
-              </h2>
+              />
 
             </div>
 
@@ -414,8 +514,11 @@ export default async function Winterween2024Page() {
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={tematicaEtiqueta}
+                campo="tematica_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -423,12 +526,13 @@ export default async function Winterween2024Page() {
                   text-blue-200
                   drop-shadow-lg
                 "
-              >
-                WINTERWEEN
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={tematicaTitulo}
+                campo="tematica_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -438,9 +542,7 @@ export default async function Winterween2024Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Temática de la edición
-              </h2>
+              />
 
             </div>
 
@@ -486,8 +588,11 @@ export default async function Winterween2024Page() {
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={participantesEtiqueta}
+                campo="participantes_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -495,12 +600,13 @@ export default async function Winterween2024Page() {
                   text-blue-200
                   drop-shadow-lg
                 "
-              >
-                LOS PARTICIPANTES
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={participantesTitulo}
+                campo="participantes_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -510,9 +616,7 @@ export default async function Winterween2024Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Participantes
-              </h2>
+              />
 
             </div>
 
@@ -542,15 +646,18 @@ export default async function Winterween2024Page() {
           </section>
 
           {/* ==================================================
-              4. HISTORIA DEL EVENTO
+              4. GALERÍA
               ================================================== */}
 
           <section className="mb-24">
 
             <div className="mb-8">
 
-              <p
-                className="
+              <EditarTextoEdicion
+                valor={galeriaEtiqueta}
+                campo="galeria_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
                   text-sm
                   font-bold
                   uppercase
@@ -558,12 +665,13 @@ export default async function Winterween2024Page() {
                   text-blue-200
                   drop-shadow-lg
                 "
-              >
-                HISTORIA
-              </p>
+              />
 
-              <h2
-                className="
+              <EditarTextoEdicion
+                valor={galeriaTitulo}
+                campo="galeria_titulo"
+                edicionId={edicion.id}
+                claseTexto="
                   mt-3
                   text-4xl
                   font-black
@@ -573,147 +681,7 @@ export default async function Winterween2024Page() {
                   sm:text-5xl
                   md:text-6xl
                 "
-              >
-                Historia del evento
-              </h2>
-
-            </div>
-
-            <div
-              className="
-                rounded-3xl
-                border
-                border-white/15
-                bg-black/35
-                p-6
-                shadow-2xl
-                backdrop-blur-sm
-                sm:p-8
-                md:p-10
-              "
-            >
-
-              <p
-                className="
-                  whitespace-pre-line
-                  text-lg
-                  leading-8
-                  text-white
-                  sm:text-xl
-                "
-              >
-                {evento.historia ||
-                  "Winterween es un evento de THE GAME ARCHIVE."}
-              </p>
-
-            </div>
-
-          </section>
-
-          {/* ==================================================
-              5. ¿CÓMO NACIÓ?
-              ================================================== */}
-
-          <section className="mb-24">
-
-            <div className="mb-8">
-
-              <p
-                className="
-                  text-sm
-                  font-bold
-                  uppercase
-                  tracking-[0.4em]
-                  text-blue-200
-                  drop-shadow-lg
-                "
-              >
-                EL ORIGEN
-              </p>
-
-              <h2
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                  leading-tight
-                  text-white
-                  drop-shadow-[0_5px_15px_rgba(0,0,0,0.9)]
-                  sm:text-5xl
-                  md:text-6xl
-                "
-              >
-                ¿Cómo nació?
-              </h2>
-
-            </div>
-
-            <div
-              className="
-                rounded-3xl
-                border
-                border-white/15
-                bg-black/35
-                p-6
-                shadow-2xl
-                backdrop-blur-sm
-                sm:p-8
-                md:p-10
-              "
-            >
-
-              <p
-                className="
-                  whitespace-pre-line
-                  text-lg
-                  leading-8
-                  text-white
-                  sm:text-xl
-                "
-              >
-                {evento.como_nacio ||
-                  "Una instancia para compartir, jugar y crear recuerdos."}
-              </p>
-
-            </div>
-
-          </section>
-
-          {/* ==================================================
-              6. GALERÍA — ÚLTIMA SECCIÓN
-              ================================================== */}
-
-          <section className="mb-24">
-
-            <div className="mb-8">
-
-              <p
-                className="
-                  text-sm
-                  font-bold
-                  uppercase
-                  tracking-[0.4em]
-                  text-blue-200
-                  drop-shadow-lg
-                "
-              >
-                RECUERDOS
-              </p>
-
-              <h2
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                  leading-tight
-                  text-white
-                  drop-shadow-[0_5px_15px_rgba(0,0,0,0.9)]
-                  sm:text-5xl
-                  md:text-6xl
-                "
-              >
-                Galería
-              </h2>
+              />
 
             </div>
 
@@ -757,31 +725,34 @@ export default async function Winterween2024Page() {
           "
         >
 
-          <p
-            className="
+          <EditarTextoEdicion
+            valor={footerTitulo}
+            campo="footer_titulo"
+            edicionId={edicion.id}
+            claseTexto="
               text-xs
               font-bold
               uppercase
               tracking-[0.35em]
               text-white/70
             "
-          >
-            THE GAME ARCHIVE
-          </p>
+          />
 
-          <p
-            className="
+          <EditarTextoEdicion
+            valor={footerDescripcion}
+            campo="footer_descripcion"
+            edicionId={edicion.id}
+            claseTexto="
               mt-3
               text-sm
               text-white/50
             "
-          >
-            Winterween · 2024
-          </p>
+          />
 
         </footer>
 
       </div>
+
     </main>
   );
 }

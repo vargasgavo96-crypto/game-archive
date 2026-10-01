@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import GaleriaFotos from "@/app/components/GaleriaFotos";
+
+import EditarTexto from "@/app/components/EditarTexto";
 import EditarTextoEdicion from "@/app/components/EditarTextoEdicion";
+import GaleriaFotos from "@/app/components/GaleriaFotos";
 
 type Evento = {
   id: number;
@@ -26,6 +28,7 @@ const AÑOS_HISTORICOS = [
 ];
 
 export default async function UglySweatersHistoricoPage() {
+
   // =====================================================
   // EVENTO
   // =====================================================
@@ -42,6 +45,7 @@ export default async function UglySweatersHistoricoPage() {
     .single();
 
   if (eventoError || !evento) {
+
     console.error(
       "Error cargando Ugly Sweaters Party:",
       eventoError
@@ -49,6 +53,7 @@ export default async function UglySweatersHistoricoPage() {
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
+
         <div className="text-center">
 
           <h1 className="text-3xl font-bold text-red-500">
@@ -60,6 +65,7 @@ export default async function UglySweatersHistoricoPage() {
           </p>
 
         </div>
+
       </main>
     );
   }
@@ -79,6 +85,7 @@ export default async function UglySweatersHistoricoPage() {
     .eq("evento_id", evento.id);
 
   if (edicionesError) {
+
     console.error(
       "Error cargando ediciones de Ugly Sweaters Party:",
       edicionesError
@@ -90,17 +97,13 @@ export default async function UglySweatersHistoricoPage() {
 
   // =====================================================
   // MAPA DE EDICIONES
-  //
-  // Buscamos cada año por separado para mantener la misma
-  // lógica del histórico original.
   // =====================================================
 
   const edicionesPorAño =
     new Map<number, Edicion>();
 
-  for (
-    const año of AÑOS_HISTORICOS
-  ) {
+  for (const año of AÑOS_HISTORICOS) {
+
     const {
       data: edicionData,
       error: edicionError,
@@ -114,6 +117,7 @@ export default async function UglySweatersHistoricoPage() {
       .maybeSingle();
 
     if (edicionError) {
+
       console.error(
         `Error cargando edición ${año}:`,
         edicionError
@@ -123,10 +127,12 @@ export default async function UglySweatersHistoricoPage() {
     }
 
     if (edicionData) {
+
       edicionesPorAño.set(
         año,
         edicionData as Edicion
       );
+
     }
   }
 
@@ -135,6 +141,7 @@ export default async function UglySweatersHistoricoPage() {
   // =====================================================
 
   return (
+
     <main
       className="
         relative
@@ -195,7 +202,10 @@ export default async function UglySweatersHistoricoPage() {
             "
           >
 
+            {/* LOGO */}
+
             {evento.logo && (
+
               <img
                 src={evento.logo}
                 alt={evento.nombre}
@@ -206,7 +216,10 @@ export default async function UglySweatersHistoricoPage() {
                   drop-shadow-[0_0_35px_rgba(220,38,38,0.4)]
                 "
               />
+
             )}
+
+            {/* ETIQUETA */}
 
             <p
               className="
@@ -221,31 +234,49 @@ export default async function UglySweatersHistoricoPage() {
               Archivo histórico
             </p>
 
-            <h1
-              className="
-                mt-4
-                text-5xl
-                font-black
-                md:text-8xl
-              "
-            >
-              UGLY SWEATERS PARTY
-            </h1>
+            {/* NOMBRE */}
 
-            <p
+            <div className="mt-4 w-full">
+
+              <EditarTexto
+                valor={evento.nombre}
+                campo="nombre"
+                eventoId={evento.id}
+                claseTexto="
+                  text-5xl
+                  font-black
+                  md:text-8xl
+                "
+              />
+
+            </div>
+
+            {/* DESCRIPCIÓN */}
+
+            <div
               className="
                 mx-auto
                 mt-8
                 max-w-3xl
-                text-lg
-                leading-8
-                text-zinc-300
               "
             >
-              Un recorrido por las distintas ediciones de
-              Ugly Sweaters Party y por todos los momentos
-              que hicieron especial cada celebración.
-            </p>
+
+              <EditarTexto
+                valor={
+                  evento.descripcion ??
+                  "Un recorrido por las distintas ediciones de Ugly Sweaters Party y por todos los momentos que hicieron especial cada celebración."
+                }
+                campo="descripcion"
+                eventoId={evento.id}
+                multilinea
+                claseTexto="
+                  text-lg
+                  leading-8
+                  text-zinc-300
+                "
+              />
+
+            </div>
 
           </div>
 
@@ -296,8 +327,8 @@ export default async function UglySweatersHistoricoPage() {
               text-zinc-300
             "
           >
-            Aquí quedan reunidas las ediciones de
-            Ugly Sweaters Party desde 2022 hasta 2026.
+            Aquí quedan reunidas las ediciones de Ugly Sweaters
+            Party desde 2022 hasta 2026.
           </p>
 
         </section>
@@ -322,6 +353,8 @@ export default async function UglySweatersHistoricoPage() {
               py-28
             "
           >
+
+            {/* ENCABEZADO */}
 
             <div className="text-center">
 
@@ -378,16 +411,16 @@ export default async function UglySweatersHistoricoPage() {
                 (año) => {
 
                   const edicion =
-                    edicionesPorAño.get(
-                      año
-                    );
+                    edicionesPorAño.get(año);
 
                   // =================================================
                   // AÑO SIN EDICIÓN
                   // =================================================
 
                   if (!edicion) {
+
                     return (
+
                       <article
                         key={año}
                         className="
@@ -459,26 +492,79 @@ export default async function UglySweatersHistoricoPage() {
                         </div>
 
                       </article>
+
                     );
                   }
 
                   // =================================================
-                  // CONTENIDO
+                  // CONTENIDO DE LA EDICIÓN
                   // =================================================
 
                   const contenido =
-                    edicion.contenido ??
-                    {};
+                    edicion.contenido ?? {};
+
+                  // -------------------------------------------------
+                  // ETIQUETA DE EDICIÓN
+                  // -------------------------------------------------
+
+                  const etiquetaEdicion =
+                    contenido.etiqueta_edicion ??
+                    "Ugly Sweaters Party";
+
+                  // -------------------------------------------------
+                  // ESTADO
+                  // -------------------------------------------------
+
+                  const etiquetaEstado =
+                    contenido.etiqueta_estado ??
+                    "Edición histórica";
+
+                  // -------------------------------------------------
+                  // ETIQUETA RESUMEN
+                  // -------------------------------------------------
+
+                  const resumenEtiqueta =
+                    contenido.resumen_etiqueta ??
+                    "Resumen";
+
+                  // -------------------------------------------------
+                  // RESUMEN
+                  // -------------------------------------------------
 
                   const resumen =
                     contenido.resumen ??
                     "Escribe aquí el resumen de esta edición.";
+
+                  // -------------------------------------------------
+                  // ETIQUETA RECUERDOS
+                  // -------------------------------------------------
+
+                  const recuerdosEtiqueta =
+                    contenido.recuerdos_etiqueta ??
+                    "Recuerdos";
+
+                  // -------------------------------------------------
+                  // TÍTULO GALERÍA
+                  // -------------------------------------------------
+
+                  const galeriaTitulo =
+                    contenido.galeria_titulo ??
+                    "GALERÍA DE FOTOS";
+
+                  // -------------------------------------------------
+                  // DESCRIPCIÓN GALERÍA
+                  // -------------------------------------------------
+
+                  const galeriaDescripcion =
+                    contenido.galeria_descripcion ??
+                    "Las fotografías de esta edición de Ugly Sweaters Party.";
 
                   // =================================================
                   // EDICIÓN
                   // =================================================
 
                   return (
+
                     <article
                       key={edicion.id}
                       className="
@@ -529,19 +615,22 @@ export default async function UglySweatersHistoricoPage() {
                           "
                         >
 
+                          {/* IZQUIERDA */}
+
                           <div>
 
-                            <p
-                              className="
+                            <EditarTextoEdicion
+                              valor={etiquetaEdicion}
+                              campo="etiqueta_edicion"
+                              edicionId={edicion.id}
+                              claseTexto="
                                 text-sm
                                 font-semibold
                                 uppercase
                                 tracking-[0.3em]
                                 text-red-500
                               "
-                            >
-                              Ugly Sweaters Party
-                            </p>
+                            />
 
                             <h3
                               className="
@@ -556,8 +645,13 @@ export default async function UglySweatersHistoricoPage() {
 
                           </div>
 
-                          <p
-                            className="
+                          {/* DERECHA */}
+
+                          <EditarTextoEdicion
+                            valor={etiquetaEstado}
+                            campo="etiqueta_estado"
+                            edicionId={edicion.id}
+                            claseTexto="
                               text-xs
                               font-bold
                               uppercase
@@ -565,9 +659,7 @@ export default async function UglySweatersHistoricoPage() {
                               text-zinc-600
                               md:pb-2
                             "
-                          >
-                            Edición histórica
-                          </p>
+                          />
 
                         </div>
 
@@ -588,17 +680,18 @@ export default async function UglySweatersHistoricoPage() {
                         "
                       >
 
-                        <p
-                          className="
+                        <EditarTextoEdicion
+                          valor={resumenEtiqueta}
+                          campo="resumen_etiqueta"
+                          edicionId={edicion.id}
+                          claseTexto="
                             text-sm
                             font-semibold
                             uppercase
                             tracking-[0.3em]
                             text-red-500
                           "
-                        >
-                          Resumen
-                        </p>
+                        />
 
                         <EditarTextoEdicion
                           valor={resumen}
@@ -636,40 +729,43 @@ export default async function UglySweatersHistoricoPage() {
                           "
                         >
 
-                          <p
-                            className="
+                          <EditarTextoEdicion
+                            valor={recuerdosEtiqueta}
+                            campo="recuerdos_etiqueta"
+                            edicionId={edicion.id}
+                            claseTexto="
                               text-sm
                               font-semibold
                               uppercase
                               tracking-[0.3em]
                               text-red-500
                             "
-                          >
-                            Recuerdos
-                          </p>
+                          />
 
-                          <h4
-                            className="
+                          <EditarTextoEdicion
+                            valor={galeriaTitulo}
+                            campo="galeria_titulo"
+                            edicionId={edicion.id}
+                            claseTexto="
                               mt-3
                               text-4xl
                               font-black
                               md:text-5xl
                             "
-                          >
-                            GALERÍA DE FOTOS
-                          </h4>
+                          />
 
-                          <p
-                            className="
+                          <EditarTextoEdicion
+                            valor={galeriaDescripcion}
+                            campo="galeria_descripcion"
+                            edicionId={edicion.id}
+                            multilinea
+                            claseTexto="
                               mx-auto
                               mt-4
                               max-w-2xl
                               text-zinc-500
                             "
-                          >
-                            Las fotografías de esta edición
-                            de Ugly Sweaters Party.
-                          </p>
+                          />
 
                         </div>
 
@@ -680,6 +776,7 @@ export default async function UglySweatersHistoricoPage() {
                       </div>
 
                     </article>
+
                   );
                 }
               )}

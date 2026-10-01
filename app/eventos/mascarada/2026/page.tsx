@@ -70,10 +70,6 @@ export default async function Mascarada2026Page() {
 
   // =====================================================
   // EDICIÓN 2026
-  //
-  // NO incluimos "año" dentro del select porque
-  // Supabase/PostgREST genera un ParserError al
-  // interpretar el carácter "ñ".
   // =====================================================
 
   const {
@@ -165,19 +161,67 @@ export default async function Mascarada2026Page() {
       []) as Persona[];
 
   // =====================================================
-  // CONTENIDO
+  // CONTENIDO EDITABLE
   // =====================================================
 
   const contenido =
     edicion.contenido ?? {};
 
+  const heroEtiqueta =
+    contenido.hero_etiqueta ??
+    "La Mascarada";
+
+  const heroDescripcion =
+    contenido.hero_descripcion ??
+    "Una edición más de La Mascarada, donde nuestros amigos se transforman en personajes y disfraces únicos.";
+
+  const resumenEtiqueta =
+    contenido.resumen_etiqueta ??
+    "La edición";
+
+  const resumenTitulo =
+    contenido.resumen_titulo ??
+    "Resumen de la edición";
+
   const resumen =
     contenido.resumen ??
     "Escribe aquí el resumen de la edición.";
 
+  const tematicaEtiqueta =
+    contenido.tematica_etiqueta ??
+    "Temática";
+
+  const tematicaTitulo =
+    contenido.tematica_titulo ??
+    "Temática de la edición";
+
   const tematica =
     contenido.tematica ??
     "Escribe aquí la temática de la edición.";
+
+  const participantesEtiqueta =
+    contenido.participantes_etiqueta ??
+    "Los invitados";
+
+  const participantesTitulo =
+    contenido.participantes_titulo ??
+    "Participantes";
+
+  const participantesDescripcion =
+    contenido.participantes_descripcion ??
+    "Agrega a las personas que participaron en esta edición y registra el disfraz que utilizaron.";
+
+  const recuerdosEtiqueta =
+    contenido.recuerdos_etiqueta ??
+    "Recuerdos";
+
+  const galeriaTitulo =
+    contenido.galeria_titulo ??
+    "Galería";
+
+  const galeriaDescripcion =
+    contenido.galeria_descripcion ??
+    "Fotografías de La Mascarada 2026.";
 
   // =====================================================
   // RENDER
@@ -216,22 +260,65 @@ export default async function Mascarada2026Page() {
 
           <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-24 text-center md:py-32">
 
-            <p className="text-sm font-bold uppercase tracking-[0.45em] text-purple-400">
-              La Mascarada
-            </p>
+            {/* LOGO DEL EVENTO */}
+
+            {evento.logo && (
+              <img
+                src={evento.logo}
+                alt={evento.nombre}
+                className="
+                  mb-10
+                  max-h-56
+                  max-w-[320px]
+                  object-contain
+                  drop-shadow-2xl
+                  md:max-h-72
+                  md:max-w-[420px]
+                "
+              />
+            )}
+
+            {/* ETIQUETA */}
+
+            <div className="w-full">
+              <EditarTextoEdicion
+                valor={heroEtiqueta}
+                campo="hero_etiqueta"
+                edicionId={edicion.id}
+                claseTexto="
+                  text-sm
+                  font-bold
+                  uppercase
+                  tracking-[0.45em]
+                  text-purple-400
+                "
+              />
+            </div>
+
+            {/* AÑO */}
 
             <h1 className="mt-4 text-6xl font-black tracking-tight md:text-8xl">
               2026
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 md:text-xl">
-              Una edición más de La Mascarada,
-              donde nuestros amigos se transforman
-              en personajes y disfraces únicos.
-            </p>
+            {/* DESCRIPCIÓN */}
+
+            <div className="mt-6 w-full max-w-2xl">
+              <EditarTextoEdicion
+                valor={heroDescripcion}
+                campo="hero_descripcion"
+                edicionId={edicion.id}
+                multilinea
+                claseTexto="
+                  text-lg
+                  leading-8
+                  text-zinc-300
+                  md:text-xl
+                "
+              />
+            </div>
 
           </div>
-
         </section>
 
         {/* =================================================
@@ -248,13 +335,33 @@ export default async function Mascarada2026Page() {
 
             <div className="mb-8">
 
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-purple-400">
-                La edición
-              </p>
+              <div className="w-full">
+                <EditarTextoEdicion
+                  valor={resumenEtiqueta}
+                  campo="resumen_etiqueta"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-sm
+                    font-bold
+                    uppercase
+                    tracking-[0.35em]
+                    text-purple-400
+                  "
+                />
+              </div>
 
-              <h2 className="mt-3 text-4xl font-black md:text-5xl">
-                Resumen de la edición
-              </h2>
+              <div className="mt-3 w-full">
+                <EditarTextoEdicion
+                  valor={resumenTitulo}
+                  campo="resumen_titulo"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-4xl
+                    font-black
+                    md:text-5xl
+                  "
+                />
+              </div>
 
             </div>
 
@@ -265,7 +372,13 @@ export default async function Mascarada2026Page() {
                 campo="resumen"
                 edicionId={edicion.id}
                 multilinea
-                claseTexto="whitespace-pre-line text-lg leading-8 text-zinc-200 md:text-xl"
+                claseTexto="
+                  whitespace-pre-line
+                  text-lg
+                  leading-8
+                  text-zinc-200
+                  md:text-xl
+                "
               />
 
             </div>
@@ -280,13 +393,33 @@ export default async function Mascarada2026Page() {
 
             <div className="mb-8">
 
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-purple-400">
-                Temática
-              </p>
+              <div className="w-full">
+                <EditarTextoEdicion
+                  valor={tematicaEtiqueta}
+                  campo="tematica_etiqueta"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-sm
+                    font-bold
+                    uppercase
+                    tracking-[0.35em]
+                    text-purple-400
+                  "
+                />
+              </div>
 
-              <h2 className="mt-3 text-4xl font-black md:text-5xl">
-                Temática de la edición
-              </h2>
+              <div className="mt-3 w-full">
+                <EditarTextoEdicion
+                  valor={tematicaTitulo}
+                  campo="tematica_titulo"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-4xl
+                    font-black
+                    md:text-5xl
+                  "
+                />
+              </div>
 
             </div>
 
@@ -297,7 +430,14 @@ export default async function Mascarada2026Page() {
                 campo="tematica"
                 edicionId={edicion.id}
                 multilinea
-                claseTexto="whitespace-pre-line text-2xl font-bold leading-9 text-purple-200 md:text-4xl"
+                claseTexto="
+                  whitespace-pre-line
+                  text-2xl
+                  font-bold
+                  leading-9
+                  text-purple-200
+                  md:text-4xl
+                "
               />
 
             </div>
@@ -312,19 +452,45 @@ export default async function Mascarada2026Page() {
 
             <div className="mb-8">
 
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-purple-400">
-                Los invitados
-              </p>
+              <div className="w-full">
+                <EditarTextoEdicion
+                  valor={participantesEtiqueta}
+                  campo="participantes_etiqueta"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-sm
+                    font-bold
+                    uppercase
+                    tracking-[0.35em]
+                    text-purple-400
+                  "
+                />
+              </div>
 
-              <h2 className="mt-3 text-4xl font-black md:text-5xl">
-                Participantes
-              </h2>
+              <div className="mt-3 w-full">
+                <EditarTextoEdicion
+                  valor={participantesTitulo}
+                  campo="participantes_titulo"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-4xl
+                    font-black
+                    md:text-5xl
+                  "
+                />
+              </div>
 
-              <p className="mt-4 max-w-2xl text-zinc-400">
-                Agrega a las personas que participaron
-                en esta edición y registra el disfraz
-                que utilizaron.
-              </p>
+              <div className="mt-4 max-w-2xl">
+                <EditarTextoEdicion
+                  valor={participantesDescripcion}
+                  campo="participantes_descripcion"
+                  edicionId={edicion.id}
+                  multilinea
+                  claseTexto="
+                    text-zinc-400
+                  "
+                />
+              </div>
 
             </div>
 
@@ -350,17 +516,45 @@ export default async function Mascarada2026Page() {
 
             <div className="mb-8">
 
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-purple-400">
-                Recuerdos
-              </p>
+              <div className="w-full">
+                <EditarTextoEdicion
+                  valor={recuerdosEtiqueta}
+                  campo="recuerdos_etiqueta"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-sm
+                    font-bold
+                    uppercase
+                    tracking-[0.35em]
+                    text-purple-400
+                  "
+                />
+              </div>
 
-              <h2 className="mt-3 text-4xl font-black md:text-5xl">
-                Galería
-              </h2>
+              <div className="mt-3 w-full">
+                <EditarTextoEdicion
+                  valor={galeriaTitulo}
+                  campo="galeria_titulo"
+                  edicionId={edicion.id}
+                  claseTexto="
+                    text-4xl
+                    font-black
+                    md:text-5xl
+                  "
+                />
+              </div>
 
-              <p className="mt-4 max-w-2xl text-zinc-400">
-                Fotografías de La Mascarada 2026.
-              </p>
+              <div className="mt-4 max-w-2xl">
+                <EditarTextoEdicion
+                  valor={galeriaDescripcion}
+                  campo="galeria_descripcion"
+                  edicionId={edicion.id}
+                  multilinea
+                  claseTexto="
+                    text-zinc-400
+                  "
+                />
+              </div>
 
             </div>
 
