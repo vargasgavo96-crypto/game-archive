@@ -6,6 +6,16 @@ import EditarPortadaEdicion from "@/app/components/EditarPortadaEdicion";
 // TIPOS
 // =====================================================
 
+type Foto = {
+  id: number;
+  edicion_id?: number;
+  imagen: string;
+  descripcion: string | null;
+  orden: number | null;
+  created_at: string;
+  portada: boolean;
+};
+
 type EdicionGaleria = {
   id: number;
   eventoId: number;
@@ -13,8 +23,22 @@ type EdicionGaleria = {
   eventoLogo: string | null;
   año: string;
   fecha: string | null;
+
+  // ===================================================
+  // NUEVO SISTEMA DE GALERÍA
+  // ===================================================
+
   galeriaPortadaUrl: string | null;
   galeriaDriveUrl: string | null;
+
+  // ===================================================
+  // COMPATIBILIDAD
+  //
+  // Otras páginas del sitio todavía entregan fotos
+  // a este componente.
+  // ===================================================
+
+  fotos?: Foto[];
 };
 
 type Props = {
@@ -33,10 +57,24 @@ export default function GaleriaEdiciones({
 
       {ediciones.map((edicion) => {
 
+        // =================================================
+        // PORTADA
+        //
+        // PRIORIDAD:
+        //
+        // 1. portada específica de la edición
+        // 2. logo del evento
+        // 3. fondo genérico
+        // =================================================
+
         const portada =
           edicion.galeriaPortadaUrl ??
           edicion.eventoLogo ??
           "/eventos/todos.jfif";
+
+        // =================================================
+        // ABRIR GALERÍA
+        // =================================================
 
         function abrirGaleria() {
           if (!edicion.galeriaDriveUrl) {
@@ -77,7 +115,9 @@ export default function GaleriaEdiciones({
             <button
               type="button"
               onClick={abrirGaleria}
-              disabled={!edicion.galeriaDriveUrl}
+              disabled={
+                !edicion.galeriaDriveUrl
+              }
               className="
                 relative
                 block
@@ -108,7 +148,7 @@ export default function GaleriaEdiciones({
                 />
 
                 {/* =================================================
-                    OSCURECER
+                    DEGRADADO
                     ================================================= */}
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
@@ -170,15 +210,6 @@ export default function GaleriaEdiciones({
 
             {/* =================================================
                 EDITAR PORTADA
-                =================================================
-
-                IMPORTANTE:
-
-                Este botón está FUERA del botón que abre Drive.
-
-                Así no existe ningún conflicto entre:
-                - abrir Google Drive
-                - editar la portada
                 ================================================= */}
 
             <div
@@ -186,9 +217,14 @@ export default function GaleriaEdiciones({
                 absolute
                 left-5
                 top-5
-                z-50
+                z-[100]
               "
               onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onMouseDown={(event) => {
+                event.preventDefault();
                 event.stopPropagation();
               }}
             >
