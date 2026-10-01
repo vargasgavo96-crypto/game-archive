@@ -2,10 +2,6 @@
 
 import EditarPortadaEdicion from "@/app/components/EditarPortadaEdicion";
 
-// =====================================================
-// TIPOS
-// =====================================================
-
 type Foto = {
   id: number;
   edicion_id?: number;
@@ -24,20 +20,11 @@ type EdicionGaleria = {
   año: string;
   fecha: string | null;
 
-  // ===================================================
   // NUEVO SISTEMA DE GALERÍA
-  // ===================================================
+  galeriaPortadaUrl?: string | null;
+  galeriaDriveUrl?: string | null;
 
-  galeriaPortadaUrl: string | null;
-  galeriaDriveUrl: string | null;
-
-  // ===================================================
-  // COMPATIBILIDAD
-  //
-  // Otras páginas del sitio todavía entregan fotos
-  // a este componente.
-  // ===================================================
-
+  // COMPATIBILIDAD CON PÁGINAS ANTIGUAS
   fotos?: Foto[];
 };
 
@@ -45,41 +32,17 @@ type Props = {
   ediciones: EdicionGaleria[];
 };
 
-// =====================================================
-// COMPONENTE
-// =====================================================
-
-export default function GaleriaEdiciones({
-  ediciones,
-}: Props) {
+export default function GaleriaEdiciones({ ediciones }: Props) {
   return (
     <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-
       {ediciones.map((edicion) => {
-
-        // =================================================
-        // PORTADA
-        //
-        // PRIORIDAD:
-        //
-        // 1. portada específica de la edición
-        // 2. logo del evento
-        // 3. fondo genérico
-        // =================================================
-
         const portada =
           edicion.galeriaPortadaUrl ??
           edicion.eventoLogo ??
           "/eventos/todos.jfif";
 
-        // =================================================
-        // ABRIR GALERÍA
-        // =================================================
-
         function abrirGaleria() {
-          if (!edicion.galeriaDriveUrl) {
-            return;
-          }
+          if (!edicion.galeriaDriveUrl) return;
 
           window.open(
             edicion.galeriaDriveUrl,
@@ -91,105 +54,30 @@ export default function GaleriaEdiciones({
         return (
           <div
             key={edicion.id}
-            className="
-              group
-              relative
-              overflow-hidden
-              rounded-3xl
-              border
-              border-white/10
-              bg-black
-              shadow-2xl
-              transition
-              duration-300
-              hover:-translate-y-2
-              hover:border-violet-400/40
-              hover:shadow-violet-950/30
-            "
+            className="group relative overflow-hidden rounded-3xl border border-white/10 bg-black shadow-2xl transition duration-300 hover:-translate-y-2 hover:border-violet-400/40 hover:shadow-violet-950/30"
           >
-
-            {/* =================================================
-                TARJETA CLICKEABLE
-                ================================================= */}
-
             <button
               type="button"
               onClick={abrirGaleria}
-              disabled={
-                !edicion.galeriaDriveUrl
-              }
-              className="
-                relative
-                block
-                w-full
-                text-left
-                disabled:cursor-default
-              "
+              disabled={!edicion.galeriaDriveUrl}
+              className="relative block w-full text-left disabled:cursor-default"
             >
-
-              {/* =================================================
-                  PORTADA
-                  ================================================= */}
-
               <div className="relative h-[420px] overflow-hidden bg-zinc-950">
-
                 <img
                   src={portada}
                   alt={`${edicion.eventoNombre} ${edicion.año}`}
-                  className="
-                    h-full
-                    w-full
-                    object-cover
-                    object-center
-                    transition
-                    duration-700
-                    group-hover:scale-105
-                  "
+                  className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
                 />
-
-                {/* =================================================
-                    DEGRADADO
-                    ================================================= */}
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
-                {/* =================================================
-                    INDICADOR DRIVE
-                    ================================================= */}
-
                 {edicion.galeriaDriveUrl && (
-                  <div
-                    className="
-                      absolute
-                      right-5
-                      top-5
-                      z-20
-                      rounded-full
-                      border
-                      border-white/20
-                      bg-black/70
-                      px-4
-                      py-2
-                      text-[10px]
-                      font-black
-                      uppercase
-                      tracking-[0.15em]
-                      text-white
-                      backdrop-blur-md
-                      transition
-                      group-hover:bg-violet-600
-                    "
-                  >
+                  <div className="absolute right-5 top-5 z-20 rounded-full border border-white/20 bg-black/70 px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-white backdrop-blur-md transition group-hover:bg-violet-600">
                     VER GALERÍA
                   </div>
                 )}
 
-                {/* =================================================
-                    INFORMACIÓN
-                    ================================================= */}
-
                 <div className="absolute bottom-0 left-0 right-0 z-20 p-7">
-
                   <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">
                     Edición
                   </p>
@@ -201,24 +89,12 @@ export default function GaleriaEdiciones({
                   <p className="mt-2 text-2xl font-bold text-white/80">
                     {edicion.año}
                   </p>
-
                 </div>
-
               </div>
-
             </button>
 
-            {/* =================================================
-                EDITAR PORTADA
-                ================================================= */}
-
             <div
-              className="
-                absolute
-                left-5
-                top-5
-                z-[100]
-              "
+              className="absolute left-5 top-5 z-[100]"
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -228,15 +104,11 @@ export default function GaleriaEdiciones({
                 event.stopPropagation();
               }}
             >
-              <EditarPortadaEdicion
-                edicionId={edicion.id}
-              />
+              <EditarPortadaEdicion edicionId={edicion.id} />
             </div>
-
           </div>
         );
       })}
-
     </div>
   );
 }
