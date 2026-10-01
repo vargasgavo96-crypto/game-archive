@@ -86,7 +86,7 @@ export default async function Fairyland2025Page() {
   } = await supabase
     .from("ediciones")
     .select(
-      "id, evento_id, año, fecha, contenido"
+      "id, evento_id, fecha, contenido"
     )
     .eq("evento_id", evento.id)
     .eq("año", 2025)
@@ -248,7 +248,7 @@ export default async function Fairyland2025Page() {
     <main className="relative min-h-screen overflow-x-hidden text-white">
 
       {/* ======================================================
-          FONDO FAIRYLAND
+          FONDO
           ====================================================== */}
 
       <div
@@ -265,8 +265,6 @@ export default async function Fairyland2025Page() {
             'url("/eventos/fairyland.png")',
         }}
       />
-
-      {/* CAPA OSCURA */}
 
       <div
         className="
@@ -330,7 +328,7 @@ export default async function Fairyland2025Page() {
           >
 
             {/* =================================================
-                LOGO
+                LOGO FAIRYLAND
                 ================================================= */}
 
             {evento.logo && (

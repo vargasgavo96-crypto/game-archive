@@ -1,7 +1,5 @@
 import { supabase } from "@/lib/supabase";
-
 import EditarTexto from "@/app/components/EditarTexto";
-import EditarPortadaEdicion from "@/app/components/EditarPortadaEdicion";
 
 type Evento = {
   id: number;
@@ -11,15 +9,48 @@ type Evento = {
   slug: string;
   historia: string | null;
   como_nacio: string | null;
+  tiene_ganador: boolean;
 };
 
 type Edicion = {
   id: number;
   evento_id: number;
   año: string;
-  fecha: string | null;
-  galeria_portada_url: string | null;
+  fecha: string;
 };
+
+type Persona = {
+  id: number;
+  nombre: string;
+  imagen: string | null;
+};
+
+type Participacion = {
+  id: number;
+  persona_id: number;
+  edicion_id: number;
+  posicion: number | null;
+  puntos_finales: number | null;
+};
+
+type Premio = {
+  id: number;
+  persona_id: number;
+  edicion_id: number;
+  nombre: string;
+  descripcion: string | null;
+  imagen: string | null;
+};
+
+function nombreCorto(nombre: string) {
+  const partes = nombre.trim().split(/\s+/);
+
+  if (partes.length === 1) {
+    return partes[0];
+  }
+
+  return `${partes[0]} ${partes[partes.length - 2]}`;
+}
 
 export default async function FairylandPage() {
   const {
@@ -28,7 +59,7 @@ export default async function FairylandPage() {
   } = await supabase
     .from("eventos")
     .select(
-      "id, nombre, descripcion, logo, slug, historia, como_nacio"
+      "id, nombre, descripcion, logo, slug, historia, como_nacio, tiene_ganador"
     )
     .eq("slug", "fairyland")
     .single();
@@ -59,9 +90,8 @@ export default async function FairylandPage() {
     error: edicionesError,
   } = await supabase
     .from("ediciones")
-    .select("id, evento_id, fecha, galeria_portada_url")
+    .select("*")
     .eq("evento_id", evento.id)
-    .eq("año", 2024)
     .order("fecha", {
       ascending: false,
     });
@@ -73,15 +103,122 @@ export default async function FairylandPage() {
     );
   }
 
-  const ediciones: Edicion[] = (edicionesData ?? []).map(
-    (edicion) => ({
-      id: edicion.id,
-      evento_id: edicion.evento_id,
-      año: "2024",
-      fecha: edicion.fecha ?? null,
-      galeria_portada_url: edicion.galeria_portada_url ?? null,
-    })
+  const ediciones: Edicion[] =
+    edicionesData ?? [];
+
+  const edicionIds = ediciones.map(
+    (edicion) => edicion.id
   );
+
+  const {
+    data: premiosData,
+    error: premiosError,
+  } = evento.tiene_ganador && edicionIds.length
+    ? await supabase
+        .from("premios")
+        .select(
+          "id, persona_id, edicion_id, nombre, descripcion, imagen"
+        )
+        .in("edicion_id", edicionIds)
+    : {
+        data: [],
+        error: null,
+      };
+
+  if (premiosError) {
+    console.error(
+      "Error cargando premios:",
+      premiosError
+    );
+  }
+
+  const premios: Premio[] =
+    premiosData ?? [];
+
+  const {
+    data: participacionesData,
+    error: participacionesError,
+  } = evento.tiene_ganador && edicionIds.length
+    ? await supabase
+        .from("participaciones")
+        .select(
+          "id, persona_id, edicion_id, posicion, puntos_finales"
+        )
+        .in("edicion_id", edicionIds)
+        .eq("posicion", 1)
+    : {
+        data: [],
+        error: null,
+      };
+
+  if (participacionesError) {
+    console.error(
+      "Error cargando participaciones:",
+      participacionesError
+    );
+  }
+
+  const participacionesGanadoras: Participacion[] =
+    participacionesData ?? [];
+
+  const personaIds = [
+    ...new Set([
+      ...premios.map(
+        (premio) => premio.persona_id
+      ),
+      ...participacionesGanadoras.map(
+        (participacion) =>
+          participacion.persona_id
+      ),
+    ]),
+  ];
+
+  const {
+    data: personasData,
+    error: personasError,
+  } = evento.tiene_ganador && personaIds.length
+    ? await supabase
+        .from("personas")
+        .select("id, nombre, imagen")
+        .in("id", personaIds)
+    : {
+        data: [],
+        error: null,
+      };
+
+  if (personasError) {
+    console.error(
+      "Error cargando personas:",
+      personasError
+    );
+  }
+
+  const personas: Persona[] =
+    personasData ?? [];
+
+  const personaPorId = new Map(
+    personas.map((persona) => [
+      persona.id,
+      persona,
+    ])
+  );
+
+  const premioPorEdicion = new Map(
+    premios.map((premio) => [
+      premio.edicion_id,
+      premio,
+    ])
+  );
+
+  const participacionPorEdicion =
+    new Map(
+      participacionesGanadoras.map(
+        (participacion) => [
+          participacion.edicion_id,
+          participacion,
+        ]
+      )
+    );
 
   const historia =
     evento.historia ??
@@ -93,14 +230,7 @@ export default async function FairylandPage() {
 
   return (
     <main
-      className="
-        relative
-        min-h-screen
-        bg-cover
-        bg-center
-        bg-fixed
-        text-white
-      "
+      className="relative min-h-screen bg-cover bg-center bg-fixed text-white"
       style={{
         backgroundImage:
           "url('/eventos/fairyland.png')",
@@ -116,50 +246,19 @@ export default async function FairylandPage() {
 
         <section className="relative overflow-hidden border-b border-white/10">
 
-          <div
-            className="
-              absolute
-              inset-0
-              bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.25),_transparent_50%)]
-            "
-          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.25),_transparent_50%)]" />
 
-          <div
-            className="
-              relative
-              mx-auto
-              flex
-              max-w-7xl
-              flex-col
-              items-center
-              px-6
-              py-24
-              text-center
-            "
-          >
+          <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-24 text-center">
 
             {evento.logo && (
               <img
                 src={evento.logo}
                 alt={evento.nombre}
-                className="
-                  max-h-72
-                  max-w-md
-                  object-contain
-                "
+                className="max-h-72 max-w-md object-contain"
               />
             )}
 
-            <p
-              className="
-                mt-12
-                text-sm
-                font-semibold
-                uppercase
-                tracking-[0.4em]
-                text-violet-400
-              "
-            >
+            <p className="mt-12 text-sm font-semibold uppercase tracking-[0.4em] text-violet-400">
               Nuestro evento
             </p>
 
@@ -168,28 +267,13 @@ export default async function FairylandPage() {
                 valor={evento.nombre}
                 campo="nombre"
                 eventoId={evento.id}
-                claseTexto="
-                  text-5xl
-                  font-black
-                  md:text-7xl
-                "
+                claseTexto="text-5xl font-black md:text-7xl"
               />
             </div>
 
-            <div
-              className="
-                mx-auto
-                mt-8
-                max-w-3xl
-                text-lg
-                leading-8
-                text-zinc-300
-              "
-            >
+            <div className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
               <EditarTexto
-                valor={
-                  evento.descripcion ?? ""
-                }
+                valor={evento.descripcion ?? ""}
                 campo="descripcion"
                 eventoId={evento.id}
                 multilinea
@@ -203,47 +287,17 @@ export default async function FairylandPage() {
         {/* HISTORIA */}
         {/* ================================================== */}
 
-        <section
-          className="
-            mx-auto
-            max-w-5xl
-            px-6
-            py-24
-            text-center
-          "
-        >
+        <section className="mx-auto max-w-5xl px-6 py-24 text-center">
 
-          <p
-            className="
-              text-sm
-              font-semibold
-              uppercase
-              tracking-[0.3em]
-              text-violet-400
-            "
-          >
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
             La historia
           </p>
 
-          <h2
-            className="
-              mt-4
-              text-4xl
-              font-bold
-              md:text-5xl
-            "
-          >
+          <h2 className="mt-4 text-4xl font-bold md:text-5xl">
             ¿Qué es Fairyland?
           </h2>
 
-          <div
-            className="
-              mt-10
-              text-lg
-              leading-8
-              text-zinc-300
-            "
-          >
+          <div className="mt-10 text-lg leading-8 text-zinc-300">
             <EditarTexto
               valor={historia}
               campo="historia"
@@ -252,14 +306,7 @@ export default async function FairylandPage() {
             />
           </div>
 
-          <div
-            className="
-              mt-8
-              text-lg
-              leading-8
-              text-zinc-300
-            "
-          >
+          <div className="mt-8 text-lg leading-8 text-zinc-300">
             <EditarTexto
               valor={comoNacio}
               campo="como_nacio"
@@ -274,110 +321,39 @@ export default async function FairylandPage() {
         {/* EDICIONES */}
         {/* ================================================== */}
 
-        <section
-          className="
-            border-y
-            border-white/10
-            bg-black/40
-          "
-        >
+        <section className="border-y border-white/10 bg-black/40">
 
-          <div
-            className="
-              mx-auto
-              max-w-7xl
-              px-6
-              py-20
-            "
-          >
+          <div className="mx-auto max-w-7xl px-6 py-24">
 
             <div className="text-center">
 
-              <p
-                className="
-                  text-sm
-                  font-semibold
-                  uppercase
-                  tracking-[0.3em]
-                  text-violet-400
-                "
-              >
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
                 Archivo histórico
               </p>
 
-              <h2
-                className="
-                  mt-4
-                  text-4xl
-                  font-black
-                  md:text-5xl
-                "
-              >
+              <h2 className="mt-4 text-5xl font-black">
                 EDICIONES
               </h2>
 
-              <p
-                className="
-                  mx-auto
-                  mt-4
-                  max-w-xl
-                  text-sm
-                  leading-7
-                  text-zinc-300
-                  md:text-base
-                "
-              >
-                Revisa cada edición de Fairyland.
+              <p className="mx-auto mt-5 max-w-xl text-zinc-300">
+                Las ediciones de Fairyland aparecerán aquí.
               </p>
 
             </div>
 
             {ediciones.length === 0 ? (
 
-              <div
-                className="
-                  mx-auto
-                  mt-12
-                  max-w-2xl
-                  rounded-3xl
-                  border
-                  border-white/10
-                  bg-zinc-900/90
-                  p-12
-                  text-center
-                "
-              >
+              <div className="mx-auto mt-14 max-w-2xl rounded-3xl border border-white/10 bg-zinc-900/90 p-12 text-center">
 
-                <p
-                  className="
-                    text-sm
-                    font-semibold
-                    uppercase
-                    tracking-[0.3em]
-                    text-violet-400
-                  "
-                >
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
                   Próximamente
                 </p>
 
-                <h3
-                  className="
-                    mt-5
-                    text-4xl
-                    font-black
-                    md:text-5xl
-                  "
-                >
+                <h3 className="mt-5 text-4xl font-black md:text-5xl">
                   Fairyland
                 </h3>
 
-                <p
-                  className="
-                    mt-5
-                    text-lg
-                    text-zinc-300
-                  "
-                >
+                <p className="mt-5 text-lg text-zinc-300">
                   Las ediciones de Fairyland aparecerán aquí.
                 </p>
 
@@ -385,158 +361,136 @@ export default async function FairylandPage() {
 
             ) : (
 
-              <div
-                className="
-                  mt-12
-                  grid
-                  grid-cols-1
-                  gap-6
-                  sm:grid-cols-2
-                  lg:grid-cols-3
-                "
-              >
+              <div className="mt-14 grid gap-8 md:grid-cols-2">
 
-                {ediciones.map(
-                  (edicion) => {
+                {ediciones.map((edicion) => {
 
-                    const portada =
-                      edicion.galeria_portada_url ??
-                      evento.logo ??
-                      "/logos/fairyland.png";
+                  const premio =
+                    evento.tiene_ganador
+                      ? premioPorEdicion.get(
+                          edicion.id
+                        )
+                      : undefined;
 
-                    return (
-                      <div
-                        key={edicion.id}
-                        className="
-                          group
-                          relative
-                          overflow-hidden
-                          rounded-2xl
-                          border
-                          border-white/10
-                          bg-zinc-950/95
-                          shadow-2xl
-                          transition
-                          duration-300
-                          hover:-translate-y-2
-                          hover:border-violet-500/50
-                        "
-                      >
+                  const participacion =
+                    evento.tiene_ganador
+                      ? participacionPorEdicion.get(
+                          edicion.id
+                        )
+                      : undefined;
 
-                        <a
-                          href={`/eventos/fairyland/${edicion.año}`}
-                          className="block"
-                        >
+                  const ganadorId =
+                    evento.tiene_ganador
+                      ? premio?.persona_id ??
+                        participacion?.persona_id
+                      : undefined;
 
+                  const ganador =
+                    ganadorId
+                      ? personaPorId.get(
+                          ganadorId
+                        )
+                      : undefined;
+
+                  const imagenGanador =
+                    evento.tiene_ganador
+                      ? premio?.imagen ??
+                        ganador?.imagen
+                      : undefined;
+
+                  return (
+                    <a
+                      key={edicion.id}
+                      href={`/eventos/fairyland/${edicion.año}`}
+                      className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/90 transition duration-300 hover:-translate-y-2 hover:border-violet-500/50"
+                    >
+
+                      <div className="relative h-[520px] overflow-hidden bg-zinc-900">
+
+                        {imagenGanador && (
                           <div
-                            className="
-                              relative
-                              h-[330px]
-                              overflow-hidden
-                              bg-zinc-900
-                            "
-                          >
+                            className="absolute inset-0 scale-110 bg-cover bg-center opacity-30 blur-2xl transition duration-700 group-hover:scale-125"
+                            style={{
+                              backgroundImage: `url('${imagenGanador}')`,
+                            }}
+                          />
+                        )}
 
-                            <img
-                              src={portada}
-                              alt={`Portada Fairyland ${edicion.año}`}
-                              className={`
-                                h-full
-                                w-full
-                                object-center
-                                transition
-                                duration-700
-                                group-hover:scale-105
-                                ${
-                                  edicion.galeria_portada_url
-                                    ? "object-cover"
-                                    : "object-contain p-12 opacity-70"
-                                }
-                              `}
-                            />
+                        <div className="absolute inset-0 bg-black/40" />
 
-                            <div
-                              className="
-                                absolute
-                                inset-0
-                                bg-gradient-to-t
-                                from-black
-                                via-black/25
-                                to-transparent
-                              "
-                            />
+                        {imagenGanador ? (
+                          <img
+                            src={imagenGanador}
+                            alt={
+                              ganador
+                                ? nombreCorto(
+                                    ganador.nombre
+                                  )
+                                : "Ganador de Fairyland"
+                            }
+                            className="relative z-10 h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
+                          />
+                        ) : (
+                          <img
+                            src={
+                              evento.logo ??
+                              "/logos/fairyland.png"
+                            }
+                            alt="Fairyland"
+                            className="relative z-10 h-full w-full object-contain p-20 opacity-60"
+                          />
+                        )}
 
-                            <div
-                              className="
-                                absolute
-                                bottom-5
-                                left-5
-                                z-20
-                              "
-                            >
+                        <div className="absolute inset-0 z-20 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
-                              <p
-                                className="
-                                  text-xs
-                                  font-semibold
-                                  uppercase
-                                  tracking-[0.3em]
-                                  text-violet-300
-                                "
-                              >
-                                Edición
-                              </p>
+                        <div className="absolute bottom-8 left-8 z-30">
 
-                              <h3
-                                className="
-                                  mt-1
-                                  text-5xl
-                                  font-black
-                                  tracking-tight
-                                  text-white
-                                "
-                              >
-                                {edicion.año}
-                              </h3>
+                          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-400">
+                            Edición
+                          </p>
 
-                            </div>
+                          <h3 className="mt-2 text-7xl font-black tracking-tight">
+                            {edicion.año}
+                          </h3>
 
-                          </div>
-
-                          <div
-                            className="
-                              border-t
-                              border-white/10
-                              bg-zinc-900/95
-                              px-5
-                              py-4
-                            "
-                          >
-
-                            <p
-                              className="
-                                text-sm
-                                font-semibold
-                                text-zinc-500
-                                transition
-                                group-hover:text-violet-400
-                              "
-                            >
-                              VER EDICIÓN →
-                            </p>
-
-                          </div>
-
-                        </a>
-
-                        <EditarPortadaEdicion
-                          edicionId={edicion.id}
-                        />
+                        </div>
 
                       </div>
-                    );
-                  }
-                )}
+
+                      <div className="border-t border-white/10 bg-zinc-900/95 p-8">
+
+                        {evento.tiene_ganador && (
+                          <>
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                              {premio?.nombre ??
+                                "Ganador de la edición"}
+                            </p>
+
+                            <p className="mt-2 text-2xl font-bold">
+                              {ganador
+                                ? nombreCorto(
+                                    ganador.nombre
+                                  )
+                                : "Por definir"}
+                            </p>
+                          </>
+                        )}
+
+                        <p
+                          className={`text-sm font-semibold text-zinc-500 transition group-hover:text-violet-400 ${
+                            evento.tiene_ganador
+                              ? "mt-6"
+                              : ""
+                          }`}
+                        >
+                          VER EDICIÓN →
+                        </p>
+
+                      </div>
+
+                    </a>
+                  );
+                })}
 
               </div>
             )}
@@ -548,26 +502,9 @@ export default async function FairylandPage() {
         {/* FOOTER */}
         {/* ================================================== */}
 
-        <footer
-          className="
-            border-t
-            border-white/10
-            bg-black/40
-            px-6
-            py-10
-          "
-        >
+        <footer className="border-t border-white/10 bg-black/40 px-6 py-10">
 
-          <div
-            className="
-              mx-auto
-              flex
-              max-w-7xl
-              justify-between
-              text-sm
-              text-zinc-500
-            "
-          >
+          <div className="mx-auto flex max-w-7xl justify-between text-sm text-zinc-500">
 
             <p>
               THE GAME ARCHIVE

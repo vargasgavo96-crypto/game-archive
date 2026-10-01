@@ -86,7 +86,7 @@ export default async function Fairyland2024Page() {
   } = await supabase
     .from("ediciones")
     .select(
-      "id, evento_id, año, fecha, contenido"
+      "id, evento_id, fecha, contenido"
     )
     .eq("evento_id", evento.id)
     .eq("año", 2024)
